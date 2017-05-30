@@ -53,14 +53,14 @@ namespace StringTool {
                 Console.WriteLine("Processing File: {0}", Path.GetFileName(Input));
                 Wrapper Engine = new Wrapper();
                 if (DumpMode) {
-                    string[] Txt = Engine.Import(File.ReadAllBytes(Input));
+                    string[] Txt = Engine.Import(File.ReadAllBytes(Input), Path.GetExtension(Input));
                     Encode(ref Txt, true);
                     Console.WriteLine("Loaded \"{0}\" Strings, Exporting to \"{1}\"", Txt.Length, Path.GetFileName(Output));
                     File.WriteAllLines(Output, Txt, Encoding.UTF8);
                 } else {
                     string[] Txt = File.ReadAllLines(Input2, Encoding.UTF8);
                     Encode(ref Txt, false);
-                    string[] Imp = Engine.Import(File.ReadAllBytes(Input));
+                    string[] Imp = Engine.Import(File.ReadAllBytes(Input), Path.GetExtension(Input));
                     Console.WriteLine("Original have {0} Lines, New have {1} Lines...", Imp.Length, Txt.Length);
                     if (Txt.Length != Imp.Length) {
                         throw new Exception("Input line count don't match with script string count.");

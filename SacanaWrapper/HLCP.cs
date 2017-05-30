@@ -4,11 +4,12 @@ using System.CodeDom.Compiler;
 using System.Globalization;
 using System.Reflection;
 
-class HighLevelCodeProcessator {
+public class HighLevelCodeProcessator {
 
     internal HighLevelCodeProcessator(byte[] File) {
         Engine = Assembly.Load(File);
     }
+
     internal HighLevelCodeProcessator(string Code) {
         System.IO.StringReader Sr = new System.IO.StringReader(Code);
         string[] Lines = new string[0];
@@ -20,10 +21,11 @@ class HighLevelCodeProcessator {
         }
         Engine = InitializeEngine(Lines);
     }
+
     Assembly Engine;
-    internal static void Crash() {
+
+    internal static void Crash() =>
         Crash();
-    }
 
     /// <summary>
     /// Call a Function with arguments and return the result
@@ -32,10 +34,9 @@ class HighLevelCodeProcessator {
     /// <param name="FunctionName">Target function name</param>
     /// <param name="Arguments">Function parameters</param>
     /// <returns></returns>
-    internal object Call(string ClassName, string FunctionName, params object[] Arguments) {
-        object ret = exec(Arguments, ClassName, FunctionName, Engine);
-        return ret;
-    }
+    internal object Call(string ClassName, string FunctionName, params object[] Arguments) => 
+        exec(Arguments, ClassName, FunctionName, Engine);
+    
 
     private object Instance = null;
 
@@ -58,8 +59,6 @@ class HighLevelCodeProcessator {
         foreach (string line in lines) {
             if (line.StartsWith("#IMPORT ")) {
                 string dll = line.Substring(8, line.Length - 8).Replace("%CD%", AssemblyDirectory);
-                if (!System.IO.File.Exists(dll))
-                    throw new Exception("Failed to Import the " + dll);
                 cp.ReferencedAssemblies.Add(dll);
                 continue;
             }
