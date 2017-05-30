@@ -19,3 +19,4 @@ A Wrapper to use my tools as plugin to your software.
   - SiglusEngine [.SS] [NONE]
   - ARCGameEngine [.BIN] [SYS]
   - AutomataTranslator [.BIN/.TMD/.SMD] [RITE/NONE/NONE]
+  - Renpy [.RPY] (Decompiled Script filter)
