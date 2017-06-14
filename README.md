@@ -14,13 +14,18 @@ A Wrapper to use my tools as plugin to your software.
   - Using reflection, he try call the function specified by the .ini into the .cs or .dll
 
 
-# Default/Sample Plugins:
+# Default Plugins:
   - KiriKiri [.SCN] [PSB/MDF]
   - SiglusEngine [.SS] [NONE]
   - ARCGameEngine [.BIN] [SYS]
   - AutomataTranslator [.BIN/.TMD/.SMD] [RITE/NONE/NONE]
   - Renpy [.RPY] (Decompiled Script filter)
-  
+  - CatSceneEditor [.CST] [CatScene]
+  - EushullyEditor [.BIN] [SYS]
+  - LigthStringEditor [.DAT] [NONE]
+  - PropellerManager [.MSC] [NONE]
   
 ## How to Use:
 ![https://u.nya.is/gaqnnu.gif](https://u.nya.is/gaqnnu.gif)
+
+### [Ready-To-Use Builds](https://github.com/marcussacana/SacanaWrapper/releases)

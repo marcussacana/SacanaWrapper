@@ -10,14 +10,19 @@ namespace SacanaWrapper
     {
         string ImportPath = string.Empty;
         string ExportPath = string.Empty;
-        string Lastest = string.Empty;
+        string StrIP = string.Empty;
+        string StrEP = string.Empty;
+        private static string Lastest = string.Empty;
         HighLevelCodeProcessator Plugin;
-        public string[] Import(byte[] Script, string Extension = null) {
+        public string[] Import(byte[] Script, string Extension = null, bool PreventCorrupt = false) {
+            string[] Strings = null;
             string PluginDir = HighLevelCodeProcessator.AssemblyDirectory + "\\Plugins";
 
             if (File.Exists(Lastest)) {
                 try {
-                    return TryImport(Lastest, Script);
+                    Strings = TryImport(Lastest, Script);
+                    if (!ValidateResult(Strings))
+                        return Strings;
                 }
                 catch { }
             }
@@ -42,22 +47,47 @@ namespace SacanaWrapper
                     List<string> Exts = new List<string>(PExt.ToLower().Split('|'));
                     if (Exts.Contains(Extension))
                         try {
-                            return TryImport(Plugin, Script);
+                            Strings = TryImport(Plugin, Script);
+                            if (ValidateResult(Strings)) {
+                                StrIP = ImportPath;
+                                StrEP = ExportPath;
+                                continue;
+                            }
+                            return Strings;
                         }
-                        catch (Exception ex) {
-                        }
-
+                        catch { }
                 }
             }
-            
+
             //Brute Detection
             foreach (string Plugin in Plugins) {
                 try {
-                    return TryImport(Plugin, Script);
+                    Strings = TryImport(Plugin, Script);
+                    if (ValidateResult(Strings)) {
+                        StrIP = ImportPath;
+                        StrEP = ExportPath;
+                        continue;
+                    }
+                    return Strings;
                 }
                 catch { }
             }
-            throw new Exception("Supported Plugin Not Found.");
+            if (Strings == null)
+                throw new Exception("Supported Plugin Not Found.");
+
+            if (ValidateResult(Strings) && PreventCorrupt)
+                return new string[0];
+            ImportPath = StrIP;
+            ExportPath = StrEP;
+            return Strings;
+        }
+
+        private bool ValidateResult(string[] Strings) {
+            foreach (string str in Strings) {
+                if (str.Contains('�') || str.Contains('\x0'))//If looks corrupted, try load with other plugin, if fail, return this content.
+                    return true;
+            }
+            return false;
         }
 
         public byte[] Export(string[] Strings) {
