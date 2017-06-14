@@ -24,6 +24,7 @@ A Wrapper to use my tools as plugin to your software.
   - EushullyEditor [.BIN] [SYS]
   - LigthStringEditor [.DAT] [NONE]
   - PropellerManager [.MSC] [NONE]
+  - ExHibit [.RLD] [NONE]
   
 ## How to Use:
 ![https://u.nya.is/gaqnnu.gif](https://u.nya.is/gaqnnu.gif)
