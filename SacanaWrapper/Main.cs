@@ -84,7 +84,7 @@ namespace SacanaWrapper
 
         private bool ValidateResult(string[] Strings) {
             foreach (string str in Strings) {
-                if (str.Contains('�') || str.Contains('\x0'))//If looks corrupted, try load with other plugin, if fail, return this content.
+                if (str.Contains('�') || str.Trim('\x0').Contains('\x0'))//If looks corrupted, try load with other plugin, if fail, return this content.
                     return true;
             }
             return false;
