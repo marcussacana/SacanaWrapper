@@ -14,17 +14,16 @@ namespace SacanaWrapper
         string StrEP = string.Empty;
         private static string Lastest = string.Empty;
         HighLevelCodeProcessator Plugin;
-        public string[] Import(byte[] Script, string Extension = null, bool PreventCorrupt = false) {
+        public string[] Import(byte[] Script, string Extension = null, bool PreventCorrupt = false, bool TryLastPluginFirst = false) {
             string[] Strings = null;
-            string PluginDir = HighLevelCodeProcessator.AssemblyDirectory + "\\Plugins";
+            string PluginDir = HighLevelCodeProcessator.AssemblyDirectory + "\\Plugins";       
 
-            if (File.Exists(Lastest)) {
+            if (File.Exists(Lastest) && TryLastPluginFirst) {
                 try {
                     Strings = TryImport(Lastest, Script);
                     if (!ValidateResult(Strings))
                         return Strings;
-                }
-                catch { }
+                } catch { }
             }
 
             string[] Plugins = GetFiles(PluginDir, "*.inf|*.ini|*.cfg");
