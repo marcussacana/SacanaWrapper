@@ -45,13 +45,37 @@ namespace StringTool {
                 int ParInd = 0;
                 bool FileFound = false;
                 bool DumpMode = true;
-                CheckArgs(args, ref ParInd, ref FileFound, ref Input, ref Input2, ref Output, ref DumpMode);
+                bool CountMode = false;
+                CheckArgs(args, ref ParInd, ref FileFound, ref Input, ref Input2, ref Output, ref DumpMode, ref CountMode);
+
+                Wrapper Engine = new Wrapper();
+
+                if (CountMode) {
+                    Console.WriteLine("Script\tLines");
+                    string[] Files;
+                    if (FileFound)
+                        Files = new string[] { Input };
+                    else
+                        Files = Directory.GetFiles(Input, "*.*");
+                    string Log = "Script\t\tLines\r\n";
+                    foreach (string File in Files) {
+                        string[] Strings = Engine.Import(File);
+                        string Result = string.Format("{0}\t\t{1}", Path.GetFileName(File), Strings.LongCount());
+                        Console.WriteLine(Result);
+                        Log += Result + "\r\n";
+                    }
+                    if (Input.EndsWith("\\"))
+                        Input = Input.Substring(0, Input.Length - 1); ;
+                    string LogPath = Input + "-Count.log";
+                    File.WriteAllText(LogPath, Log, Encoding.UTF8);
+                    return;
+                }
+
                 if (Input == Output)
                     Output += ".new";
                 if (Input2 == Output)
                     Output += ".new";
                 Console.WriteLine("Processing File: {0}", Path.GetFileName(Input));
-                Wrapper Engine = new Wrapper();
                 if (DumpMode) {
                     string[] Txt = Engine.Import(File.ReadAllBytes(Input), Path.GetExtension(Input));
                     Encode(ref Txt, true);
@@ -65,10 +89,11 @@ namespace StringTool {
                     if (Txt.Length != Imp.Length) {
                         throw new Exception("Input line count don't match with script string count.");
                     }
-                    File.WriteAllBytes(Output, Engine.Export(Txt));
+                    byte[] OutData = Engine.Export(Txt);
+                    File.WriteAllBytes(Output, OutData);
                 }
             }
-            catch {
+            catch (Exception ex){
                 Console.WriteLine("Failed to Process: {0}", Path.GetFileName(Input));
             }
         }
@@ -127,21 +152,36 @@ namespace StringTool {
             }
         }
 
-        private static void CheckArgs(string[] args, ref int ParInd, ref bool FileFound, ref string Input, ref string Input2, ref string Output, ref bool DumpMode) {
+        private static void CheckArgs(string[] args, ref int ParInd, ref bool FileFound, ref string Input, ref string Input2, ref string Output, ref bool DumpMode, ref bool CountMode) {
+            CountMode = false;
             foreach (string Arg in args) {
                 if (Arg.StartsWith("-") || Arg.StartsWith("\\") || Arg.StartsWith("//")) {
-                    switch (Arg.ToLower().Trim()) {
+                    switch (Arg.ToLower().Trim(' ', '\\', '/', '-')) {
                         case "dump":
                             DumpMode = true;
                             break;
                         case "insert":
                             DumpMode = false;
                             break;
+                        case "count":
+                            CountMode = true;
+                            break;
                         default:
                             throw new Exception("\"{0}\" Isn't a valid paramter.");
                     }
                     continue;
                 }
+
+
+                string ArgFN = Arg, ArgFNWE = ArgFN, ArgDir = Arg;
+                if (ArgFN.Contains(":"))
+                    ArgFN = Path.GetFileName(ArgFN);
+                if (ArgFNWE.Contains(".")) {
+                    ArgFNWE = Path.GetFileNameWithoutExtension("C:\\" + ArgFN);
+                }
+                ArgDir = (!ArgDir.Contains(":") ? AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\') : Path.GetDirectoryName(ArgDir));
+                
+
                 if (FileFound) {
                     switch (ParInd++) {
                         case 1:
@@ -152,23 +192,32 @@ namespace StringTool {
                             Output = Arg;
                             break;
                     }
-                } else if (System.IO.File.Exists(Arg)) {
+                } else if (File.Exists(Arg)) {
                     FileFound = true;
                     if (Arg.Trim().ToLower().EndsWith(".txt")) {
                         DumpMode = false;
-                        string[] Files = Directory.GetFiles(Path.GetDirectoryName(Arg), Path.GetFileNameWithoutExtension(Arg) + ".*");
+                        string[] Files;
+                        
+
+                        Files = Directory.GetFiles(ArgDir, ArgFNWE + ".*");
                         foreach (string f in Files) {
+                            string ext = ".";
+                            if (f.Contains("."))
+                                ext = Path.GetExtension(f);
                             if (!f.Trim().ToLower().EndsWith(".txt")) {
                                 Input = f;
                                 Input2 = Arg;
-                                Output = Path.GetDirectoryName(Arg) + "\\" + Path.GetFileNameWithoutExtension(Arg) + "_New" + Path.GetExtension(f);
+                                Output = ArgDir + "\\" + ArgFNWE + "_New" + ext;
                             }
                         }
                     } else
-                        Output = Path.GetDirectoryName(Arg) + "\\" + Path.GetFileNameWithoutExtension(Arg) + ".txt";
+                        Output = ArgDir + "\\" + ArgFNWE + ".txt";
                     ParInd++;
-                    if (DumpMode)
+                    if (DumpMode || CountMode)
                         Input = Arg;
+                } else if (Directory.Exists(Arg)) {
+                    FileFound = false;
+                    Input = Arg;
                 }
             }
         }
