@@ -36,7 +36,7 @@ public class HighLevelCodeProcessator {
     /// <param name="Arguments">Function parameters</param>
     /// <returns></returns>
     internal object Call(string ClassName, string FunctionName, params object[] Arguments) => 
-        exec(Arguments, ClassName, FunctionName, Engine);
+        Exec(Arguments, ClassName, FunctionName, Engine);
     
 
     private object Instance = null;
@@ -46,7 +46,7 @@ public class HighLevelCodeProcessator {
         Instance = Activator.CreateInstance(fooType, Arguments);
     }
 
-    private object exec(object[] Args, string Class, string Function, Assembly assembly) {
+    private object Exec(object[] Args, string Class, string Function, Assembly assembly) {
         Type fooType = assembly.GetType(Class);
         if (Instance == null)
             Instance = assembly.CreateInstance(Class);

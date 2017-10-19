@@ -1,4 +1,5 @@
-﻿using System;
+﻿//#define DebugPlugin
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,11 +27,15 @@ namespace SacanaWrapper
             string PluginDir = HighLevelCodeProcessator.AssemblyDirectory + "\\Plugins";       
 
             if (File.Exists(Lastest) && TryLastPluginFirst) {
+#if !DebugPlugin
                 try {
+#endif
                     Strings = TryImport(Lastest, Script);
                     if (!ValidateResult(Strings))
                         return Strings;
-                } catch { }
+#if !DebugPlugin
+            } catch { }
+#endif
             }
 
             string[] Plugins = GetFiles(PluginDir, "*.inf|*.ini|*.cfg");
@@ -47,12 +52,14 @@ namespace SacanaWrapper
             //Initial Detection
             if (Extension != null) {
                 foreach (string Plugin in Plugins) {
-                    string PExt = Ini.GetConfig("Plugin", "Extensions", Plugin, false);
+                    string PExt = Ini.GetConfig("Plugin", "Extensions;Extension;Ext;Exts;extensions;extension;ext;exts", Plugin, false);
                     if (string.IsNullOrEmpty(PExt))
                         continue;
                     List<string> Exts = new List<string>(PExt.ToLower().Split('|'));
-                    if (Exts.Contains(Extension))
+                    if (Exts.Contains(Extension)) {
+#if !DebugPlugin
                         try {
+#endif
                             Strings = TryImport(Plugin, Script);
                             if (ValidateResult(Strings)) {
                                 StrIP = ImportPath;
@@ -60,14 +67,18 @@ namespace SacanaWrapper
                                 continue;
                             }
                             return Strings;
-                        }
-                        catch { }
+#if !DebugPlugin
+                    } catch { }
+#endif
+                }
                 }
             }
 
             //Brute Detection
             foreach (string Plugin in Plugins) {
+#if !DebugPlugin
                 try {
+#endif
                     Strings = TryImport(Plugin, Script);
                     if (ValidateResult(Strings)) {
                         StrIP = ImportPath;
@@ -75,8 +86,9 @@ namespace SacanaWrapper
                         continue;
                     }
                     return Strings;
-                }
-                catch { }
+#if !DebugPlugin
+                } catch { }
+#endif
             }
             if (Strings == null)
                 throw new Exception("Supported Plugin Not Found.");
@@ -102,9 +114,9 @@ namespace SacanaWrapper
         }
 
         private string[] TryImport(string Plugin, byte[] Script) {
-            ExportPath = Ini.GetConfig("Plugin", "Export", Plugin, true);
-            ImportPath = Ini.GetConfig("Plugin", "Import", Plugin, true);
-            string CustomSource = Ini.GetConfig("Plugin", "File", Plugin, false);
+            ExportPath = Ini.GetConfig("Plugin", "Export;Exp;export;exp", Plugin, true);
+            ImportPath = Ini.GetConfig("Plugin", "Import;Imp;import;imp", Plugin, true);
+            string CustomSource = Ini.GetConfig("Plugin", "File;file;Archive;archive;Arc;arc", Plugin, false);
 
             string Path = System.IO.Path.GetDirectoryName(Plugin) + "\\",
              SourcePath = System.IO.Path.GetDirectoryName(Plugin) + "\\";
@@ -118,7 +130,7 @@ namespace SacanaWrapper
             }
 
             //Initialize Plugin
-            bool InitializeWithScript = Ini.GetConfig("Plugin", "Initialize", Plugin, true).ToLower() == "true";
+            bool InitializeWithScript = Ini.GetConfig("Plugin", "Initialize;InputOnCreate;initialize;inputoncreate", Plugin, false).ToLower() == "true";
             if (File.Exists(SourcePath))
                 this.Plugin = new HighLevelCodeProcessator(File.ReadAllText(SourcePath, Encoding.UTF8));
             else

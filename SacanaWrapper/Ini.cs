@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 class Ini {
     internal static string GetConfig(string Key, string Name, string CfgFile, bool Required = true) {
@@ -17,7 +18,7 @@ class Ini {
             string Value = Splited[1];
             for (int i = 2; i < Splited.Length; i++)
                 Value += '=' + Splited[i];
-            if (AtualName == Name && AtualKey == Key)
+            if (Name.Split(';').Any(N => N.Trim() == AtualName.Trim()) && AtualKey == Key)
                 return Value;
         }
         if (!Required)
@@ -40,7 +41,7 @@ class Ini {
                 if (Line.StartsWith("!") || string.IsNullOrWhiteSpace(Line) || !Line.Contains("=") || Line.StartsWith("#") || Line.StartsWith(";"))
                     continue;
                 string AtualName = Line.Split('=')[0].Trim();
-                if (AtualKey == Key && Name == AtualName) {
+                if (Name.Split(';').Any(N => N.Trim() == AtualName.Trim()) && AtualKey == Key) { 
                     Lines[i] = string.Format("{0}={1}", Name, Value);
                     break;
                 }
@@ -85,7 +86,7 @@ class Ini {
                 continue;
 
             string AtualName = Line.Split('=')[0].Trim();
-            if (AtualName == Name && AtualKey == Key)
+            if (Name.Split(';').Any(N => N.Trim() == AtualName.Trim()) && AtualKey == Key)
                 return ConfigStatus.Ok;
         }
         return KeyFound ? ConfigStatus.NoName : ConfigStatus.NoKey;
