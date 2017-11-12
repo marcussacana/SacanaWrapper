@@ -31,7 +31,7 @@ namespace SacanaWrapper
                 try {
 #endif
                     Strings = TryImport(Lastest, Script);
-                    if (!ValidateResult(Strings))
+                    if (!Corrupted(Strings))
                         return Strings;
 #if !DebugPlugin
             } catch { }
@@ -40,6 +40,7 @@ namespace SacanaWrapper
 
             string[] Plugins = GetFiles(PluginDir, "*.inf|*.ini|*.cfg");
 
+            List<string> Extensions = GetExtensions(Plugins);
 
             //Prepare Input Extension
             if (Extension != null && Extension.StartsWith(".")) {
@@ -50,7 +51,8 @@ namespace SacanaWrapper
 
 
             //Initial Detection
-            if (Extension != null) {
+            if (Extension != null && CountMatch(Extensions, Extension) > 0) {
+                uint Fails = 0;
                 foreach (string Plugin in Plugins) {
                     string PExt = Ini.GetConfig("Plugin", "Extensions;Extension;Ext;Exts;extensions;extension;ext;exts", Plugin, false);
                     if (string.IsNullOrEmpty(PExt))
@@ -61,7 +63,7 @@ namespace SacanaWrapper
                         try {
 #endif
                             Strings = TryImport(Plugin, Script);
-                            if (ValidateResult(Strings)) {
+                            if (Corrupted(Strings) && ++Fails < CountMatch(Extensions, Extension)) {
                                 StrIP = ImportPath;
                                 StrEP = ExportPath;
                                 continue;
@@ -80,7 +82,7 @@ namespace SacanaWrapper
                 try {
 #endif
                     Strings = TryImport(Plugin, Script);
-                    if (ValidateResult(Strings)) {
+                    if (Corrupted(Strings)) {
                         StrIP = ImportPath;
                         StrEP = ExportPath;
                         continue;
@@ -93,19 +95,44 @@ namespace SacanaWrapper
             if (Strings == null)
                 throw new Exception("Supported Plugin Not Found.");
 
-            if (ValidateResult(Strings) && PreventCorrupt)
+            if (Corrupted(Strings) && PreventCorrupt)
                 return new string[0];
             ImportPath = StrIP;
             ExportPath = StrEP;
             return Strings;
         }
 
-        private bool ValidateResult(string[] Strings) {
+        private uint CountMatch(List<string> Strings, string Pattern) {
+            return (uint)(from x in Strings where x == Pattern select x).LongCount(); ;
+        }
+
+        private List<string> GetExtensions(string[] Plugins) {
+            List<string> Exts = new List<string>();
+            foreach (string Plugin in Plugins) {
+                string PExt = Ini.GetConfig("Plugin", "Extensions;Extension;Ext;Exts;extensions;extension;ext;exts", Plugin, false);
+                if (string.IsNullOrEmpty(PExt))
+                    continue;
+                foreach (string ext in PExt.ToLower().Split('|'))
+                    Exts.Add(ext);
+            }
+            return Exts;
+        }
+
+        private bool Corrupted(string[] Strings) {
+            bool Matched = false;
             foreach (string str in Strings) {
                 if (str.Contains('�') || str.Trim('\x0').Contains('\x0'))//If looks corrupted, try load with other plugin, if fail, return this content.
-                    return true;
+                    if (Matched)
+                        return true;
+                    else
+                        Matched = true;
             }
             return false;
+        }
+
+        public void Export(string[] Strings, string SaveAs) {
+            byte[] Script = Export(Strings);
+            File.WriteAllBytes(SaveAs, Script);
         }
 
         public byte[] Export(string[] Strings) {
@@ -119,20 +146,26 @@ namespace SacanaWrapper
             string CustomSource = Ini.GetConfig("Plugin", "File;file;Archive;archive;Arc;arc", Plugin, false);
 
             string Path = System.IO.Path.GetDirectoryName(Plugin) + "\\",
-             SourcePath = System.IO.Path.GetDirectoryName(Plugin) + "\\";
+             SourcePath = System.IO.Path.GetDirectoryName(Plugin) + "\\",
+             SourcePath2 = System.IO.Path.GetDirectoryName(Plugin) + "\\";
+             
             
             if (!string.IsNullOrWhiteSpace(CustomSource)){
                 Path += CustomSource + ".dll";
                 SourcePath += CustomSource + ".cs";
+                SourcePath2 += CustomSource + ".vb";
             } else {
                 Path += System.IO.Path.GetFileNameWithoutExtension(Plugin) + ".dll";
                 SourcePath += System.IO.Path.GetFileNameWithoutExtension(Plugin) + ".cs";
+                SourcePath2 += System.IO.Path.GetFileNameWithoutExtension(Plugin) + ".vb";
             }
 
             //Initialize Plugin
             bool InitializeWithScript = Ini.GetConfig("Plugin", "Initialize;InputOnCreate;initialize;inputoncreate", Plugin, false).ToLower() == "true";
             if (File.Exists(SourcePath))
-                this.Plugin = new HighLevelCodeProcessator(File.ReadAllText(SourcePath, Encoding.UTF8));
+                this.Plugin = new HighLevelCodeProcessator(File.ReadAllText(SourcePath, Encoding.UTF8), HighLevelCodeProcessator.Language.CSharp);
+            else if (File.Exists(SourcePath2))
+                this.Plugin = new HighLevelCodeProcessator(File.ReadAllText(SourcePath2, Encoding.UTF8), HighLevelCodeProcessator.Language.VisualBasic);
             else
                 this.Plugin = new HighLevelCodeProcessator(File.ReadAllBytes(Path));
 

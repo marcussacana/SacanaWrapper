@@ -1,4 +1,5 @@
 ﻿using Microsoft.CSharp;
+using Microsoft.VisualBasic;
 using System;
 using System.CodeDom.Compiler;
 using System.Globalization;
@@ -6,7 +7,9 @@ using System.Linq;
 using System.Reflection;
 
 public class HighLevelCodeProcessator {
-
+    public enum Language {
+        CSharp, VisualBasic
+    }
     internal HighLevelCodeProcessator(byte[] File) {
         Engine = Assembly.Load(File);
     }
@@ -20,8 +23,21 @@ public class HighLevelCodeProcessator {
             tmp[Lines.Length] = Sr.ReadLine();
             Lines = tmp;
         }
-        Engine = InitializeEngine(Lines);
+        Engine = InitializeEngine(Lines, Language.CSharp);
     }
+
+    internal HighLevelCodeProcessator(string Code, Language Lang) {
+        System.IO.StringReader Sr = new System.IO.StringReader(Code);
+        string[] Lines = new string[0];
+        while (Sr.Peek() != -1) {
+            string[] tmp = new string[Lines.Length + 1];
+            Lines.CopyTo(tmp, 0);
+            tmp[Lines.Length] = Sr.ReadLine();
+            Lines = tmp;
+        }
+        Engine = InitializeEngine(Lines, Lang);
+    }
+
 
     Assembly Engine;
 
@@ -60,8 +76,8 @@ public class HighLevelCodeProcessator {
         }
         throw new Exception("Failed to find the method...");
     }
-    private Assembly InitializeEngine(string[] lines) {
-        CodeDomProvider cpd = new CSharpCodeProvider();
+    private Assembly InitializeEngine(string[] lines, Language Lang) {
+        CodeDomProvider cpd = (Lang == Language.CSharp ? (CodeDomProvider)new CSharpCodeProvider() : new VBCodeProvider());
         var cp = new CompilerParameters();
         string sourceCode = string.Empty;
         foreach (string line in lines) {
@@ -75,6 +91,7 @@ public class HighLevelCodeProcessator {
         cp.GenerateExecutable = false;
         CompilerResults cr = cpd.CompileAssemblyFromSource(cp, sourceCode);
         return cr.CompiledAssembly;
+
     }
 
     public static string AssemblyDirectory {
