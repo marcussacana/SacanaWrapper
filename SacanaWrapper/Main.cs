@@ -14,7 +14,7 @@ namespace SacanaWrapper
         string StrIP = string.Empty;
         string StrEP = string.Empty;
         private static string Lastest = string.Empty;
-        HighLevelCodeProcessator Plugin;
+        DotNetVM Plugin;
 
 
         public string[] Import(string ScriptPath, bool PreventCorrupt = false, bool TryLastPluginFirst = false) {
@@ -24,7 +24,7 @@ namespace SacanaWrapper
         }
         public string[] Import(byte[] Script, string Extension = null, bool PreventCorrupt = false, bool TryLastPluginFirst = false) {
             string[] Strings = null;
-            string PluginDir = HighLevelCodeProcessator.AssemblyDirectory + "\\Plugins";       
+            string PluginDir = DotNetVM.AssemblyDirectory + "\\Plugins";       
 
             if (File.Exists(Lastest) && TryLastPluginFirst) {
 #if !DebugPlugin
@@ -163,11 +163,11 @@ namespace SacanaWrapper
             //Initialize Plugin
             bool InitializeWithScript = Ini.GetConfig("Plugin", "Initialize;InputOnCreate;initialize;inputoncreate", Plugin, false).ToLower() == "true";
             if (File.Exists(SourcePath))
-                this.Plugin = new HighLevelCodeProcessator(File.ReadAllText(SourcePath, Encoding.UTF8), HighLevelCodeProcessator.Language.CSharp);
+                this.Plugin = new DotNetVM(File.ReadAllText(SourcePath, Encoding.UTF8), DotNetVM.Language.CSharp);
             else if (File.Exists(SourcePath2))
-                this.Plugin = new HighLevelCodeProcessator(File.ReadAllText(SourcePath2, Encoding.UTF8), HighLevelCodeProcessator.Language.VisualBasic);
+                this.Plugin = new DotNetVM(File.ReadAllText(SourcePath2, Encoding.UTF8), DotNetVM.Language.VisualBasic);
             else
-                this.Plugin = new HighLevelCodeProcessator(File.ReadAllBytes(Path));
+                this.Plugin = new DotNetVM(File.ReadAllBytes(Path));
 
             //Import
             Lastest = Plugin;
