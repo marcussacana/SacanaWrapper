@@ -1,5 +1,0 @@
-[Plugin]
-Import=TXT.Plain>Import
-Export=TXT.Plain>Export
-Extensions=TXT
-Initialize=true

@@ -1,5 +1,0 @@
-[Plugin]
-Import=INI.UE>Import
-Export=INI.UE>Export
-Extension=INT|INI
-Initialize=true
