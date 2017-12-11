@@ -27,12 +27,12 @@
             this.Plugin = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.Support = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.Type = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.Updated = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.Installed = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.Updated = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.DownloadBNT = new System.Windows.Forms.Button();
             this.UnistallBNT = new System.Windows.Forms.Button();
             this.SearchBNT = new System.Windows.Forms.Button();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.SearchTB = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // PluginList
@@ -68,15 +68,15 @@
             this.Type.Text = "Type";
             this.Type.Width = 74;
             // 
-            // Updated
-            // 
-            this.Updated.Text = "Updated";
-            this.Updated.Width = 61;
-            // 
             // Installed
             // 
             this.Installed.Text = "Installed";
             this.Installed.Width = 53;
+            // 
+            // Updated
+            // 
+            this.Updated.Text = "Updated";
+            this.Updated.Width = 61;
             // 
             // DownloadBNT
             // 
@@ -98,6 +98,7 @@
             this.UnistallBNT.TabIndex = 2;
             this.UnistallBNT.Text = "Unistall Selected";
             this.UnistallBNT.UseVisualStyleBackColor = true;
+            this.UnistallBNT.Click += new System.EventHandler(this.UnistallBNT_Click);
             // 
             // SearchBNT
             // 
@@ -108,27 +109,28 @@
             this.SearchBNT.TabIndex = 3;
             this.SearchBNT.Text = "Search";
             this.SearchBNT.UseVisualStyleBackColor = true;
+            this.SearchBNT.Click += new System.EventHandler(this.SearchBNT_Click);
             // 
-            // textBox1
+            // SearchTB
             // 
-            this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            this.SearchTB.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox1.Location = new System.Drawing.Point(12, 361);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(297, 20);
-            this.textBox1.TabIndex = 4;
+            this.SearchTB.Location = new System.Drawing.Point(12, 361);
+            this.SearchTB.Name = "SearchTB";
+            this.SearchTB.Size = new System.Drawing.Size(297, 20);
+            this.SearchTB.TabIndex = 4;
             // 
-            // Form1
+            // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(701, 394);
-            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.SearchTB);
             this.Controls.Add(this.SearchBNT);
             this.Controls.Add(this.UnistallBNT);
             this.Controls.Add(this.DownloadBNT);
             this.Controls.Add(this.PluginList);
-            this.Name = "Form1";
+            this.Name = "Main";
             this.Text = "Plugin Manager";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);
@@ -147,7 +149,7 @@
         private System.Windows.Forms.Button DownloadBNT;
         private System.Windows.Forms.Button UnistallBNT;
         private System.Windows.Forms.Button SearchBNT;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.TextBox SearchTB;
     }
 }
 

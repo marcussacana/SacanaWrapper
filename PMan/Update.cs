@@ -16,6 +16,7 @@ namespace PMan {
             string[] PluginList = DownloadString(UpdateFile).Replace("\r\n", "\n").Split('\n');
             uint PluginsCount = uint.Parse(Ini.GetConfig("Main", "Count", PluginList, true));
 
+            List<string> Names = new List<string>();
             List<Plugin> Plugins = new List<Plugin>();
             for (uint i = 0; i < PluginsCount; i++) {
                 try {
@@ -28,6 +29,7 @@ namespace PMan {
                     else if (TP.Contains("W"))
                         TP = "Write Only";
 
+                    Names.Add(Ini.GetConfig("Plugin." + i, "Name;Title", PluginList, true));
                     Plugins.Add(new Plugin() {
                         Name = Ini.GetConfig("Plugin." + i, "Name;Title", PluginList, true),
                         Extensions = Ini.GetConfig("Plugin." + i, "Extension;Formats", PluginList, true),
@@ -40,26 +42,44 @@ namespace PMan {
                 }
             }
 
-            return Plugins.ToArray();
+
+            var Ret = Plugins.ToArray();
+            var Nms = Names.ToArray();
+            Array.Sort(Nms, Ret);
+
+            return Ret;
         }
 
-        internal static bool IsInstalled(Plugin Plugin) {
-            bool Installed = false;
-            Installed |= File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File + ".inf");
-            Installed |= File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File + ".ini");
-            Installed |= File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File + ".cfg");
-
-            return Installed;
-        }
+        internal static bool IsInstalled(Plugin Plugin) =>
+            File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File);
+        
 
         internal static bool IsUpdated(Plugin Plugin) {
             if (!IsInstalled(Plugin))
                 return false;
 
-            bool Updated = false;
-            Updated |= Ini.GetConfig("Plugin", "Version;Ver;Build", AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File + ".inf", false) == Plugin.LastVer;
-            Updated |= Ini.GetConfig("Plugin", "Version;Ver;Build", AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File + ".ini", false) == Plugin.LastVer;
-            Updated |= Ini.GetConfig("Plugin", "Version;Ver;Build", AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File + ".cfg", false) == Plugin.LastVer;
+            bool Updated = true;
+            string Ver = Ini.GetConfig("Plugin", "Version;Ver;Build", AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File, false);
+            if (string.IsNullOrWhiteSpace(Ver))
+                Updated = false;
+            
+            string[] LVer = Ver.Trim().Split('.');
+            string[] OVer = Plugin.LastVer.Trim().Split('.');
+
+            int i = 0;
+            while (Updated) {
+                if (LVer.Length <= i)
+                    break;
+                if (OVer.Length <= i) {
+                    Updated = false;
+                    break;
+                }
+
+
+                if (int.Parse(LVer[i]) < int.Parse(OVer[i]))
+                    Updated = false;
+                i++;
+            }
 
             return Updated;
         }
@@ -72,18 +92,21 @@ namespace PMan {
                 if (Ini.GetConfig("Plugin", "File;file;Archive;archive;Arc;arc", PIni, false) != string.Empty) {
                     Module = Ini.GetConfig("Plugin", "File;file;Archive;archive;Arc;arc", PIni, true);
                 } else {
-                    Module = Path.GetFileName(Plugin.File);
+                    Module = Path.GetFileNameWithoutExtension(Plugin.File);
                 }
 
                 byte[] ModuleContent;
                 try {
                     ModuleContent = DownloadData(RepoPath + Module + ".cs");
+                    Module += ".cs";
                 } catch {
                     try {
                         ModuleContent = DownloadData(RepoPath + Module + ".vb");
+                        Module += ".vb";
                     } catch {
                         try {
                             ModuleContent = DownloadData(RepoPath + Module + ".dll");
+                            Module += ".dll";
                         } catch {
                             throw new Exception("Failed to Download the Plugin");
                         }
@@ -92,11 +115,22 @@ namespace PMan {
 
                 File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Module, ModuleContent);
                 File.WriteAllLines(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File, PIni, Encoding.UTF8);
-
+                Ini.SetConfig("Plugin", "Version", Plugin.LastVer, AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File);
+                
                 return true;
             }catch {
                 return false;
             }
+        }
+
+        internal static bool Unistall(Plugin Plugin) {
+            string PIni = AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File;
+            try {
+                if (File.Exists(PIni))
+                    File.Delete(PIni);
+            } catch { return false; }
+
+            return true;
         }
 
         private static string DownloadString(string Url) => Encoding.UTF8.GetString(DownloadData(Url));
