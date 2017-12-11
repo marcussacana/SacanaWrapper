@@ -1,0 +1,5 @@
+[Plugin]
+Import=SSA.Subtitle>Import
+Export=SSA.Subtitle>Export
+Extension=SSA|ASS
+Initialize=true
