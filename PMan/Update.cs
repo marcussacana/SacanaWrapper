@@ -8,30 +8,36 @@ using System.Windows.Forms;
 
 namespace PMan {
     internal static class Updater {
+        const string RepoPath = "https://raw.githubusercontent.com/marcussacana/SacanaWrapper/updater/Updater/";
+
 
         internal static Plugin[] TreeRepositorie() {
-            const string UpdateFile = "http://www.google.com";
+            const string UpdateFile = RepoPath + "Updater.ini";
             string[] PluginList = DownloadString(UpdateFile).Replace("\r\n", "\n").Split('\n');
             uint PluginsCount = uint.Parse(Ini.GetConfig("Main", "Count", PluginList, true));
 
             List<Plugin> Plugins = new List<Plugin>();
             for (uint i = 0; i < PluginsCount; i++) {
-                string TP = Ini.GetConfig("Plugin." + i, "Mode;Modes", PluginList, true);
+                try {
+                    string TP = Ini.GetConfig("Plugin." + i, "Mode;Modes", PluginList, true);
 
-                if (TP.ToUpper().Contains("W") && TP.ToUpper().Contains("R"))
-                    TP = "Read/Write";
-                else if (TP.Contains("R"))
-                    TP = "Read Only";
-                else if (TP.Contains("W"))
-                    TP = "Write Only";
+                    if (TP.ToUpper().Contains("W") && TP.ToUpper().Contains("R"))
+                        TP = "Read/Write";
+                    else if (TP.Contains("R"))
+                        TP = "Read Only";
+                    else if (TP.Contains("W"))
+                        TP = "Write Only";
 
-                Plugins.Add(new Plugin() {
-                    Name = Ini.GetConfig("Plugin." + i, "Name;Title", PluginList, true),
-                    Extensions = Ini.GetConfig("Plugin." + i, "Extension;Formats", PluginList, true),
-                    Type = TP,
-                    LastVer = Ini.GetConfig("Plugin." + i, "Build;Version", PluginList, true),
-                    File = Ini.GetConfig("Plugin." + i, "File;Path", PluginList, true)
-                });
+                    Plugins.Add(new Plugin() {
+                        Name = Ini.GetConfig("Plugin." + i, "Name;Title", PluginList, true),
+                        Extensions = Ini.GetConfig("Plugin." + i, "Extension;Formats", PluginList, true),
+                        Type = TP,
+                        LastVer = Ini.GetConfig("Plugin." + i, "Build;Version", PluginList, true),
+                        File = Ini.GetConfig("Plugin." + i, "File;Path", PluginList, true)
+                    });
+                } catch {
+                    continue;
+                }
             }
 
             return Plugins.ToArray();
@@ -60,8 +66,7 @@ namespace PMan {
 
         internal static bool Install(Plugin Plugin) {
             try {
-                const string Repo = "http://www.sample.com/";
-                string[] PIni = DownloadString(Repo + Plugin.File).Replace("\r\n", "\n").Split('\n');
+                string[] PIni = DownloadString(RepoPath + Plugin.File).Replace("\r\n", "\n").Split('\n');
 
                 string Module = string.Empty;
                 if (Ini.GetConfig("Plugin", "File;file;Archive;archive;Arc;arc", PIni, false) != string.Empty) {
@@ -70,7 +75,22 @@ namespace PMan {
                     Module = Path.GetFileName(Plugin.File);
                 }
 
-                File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Module, DownloadData(Repo + Module));
+                byte[] ModuleContent;
+                try {
+                    ModuleContent = DownloadData(RepoPath + Module + ".cs");
+                } catch {
+                    try {
+                        ModuleContent = DownloadData(RepoPath + Module + ".vb");
+                    } catch {
+                        try {
+                            ModuleContent = DownloadData(RepoPath + Module + ".dll");
+                        } catch {
+                            throw new Exception("Failed to Download the Plugin");
+                        }
+                    }
+                }
+
+                File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Module, ModuleContent);
                 File.WriteAllLines(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File, PIni, Encoding.UTF8);
 
                 return true;
