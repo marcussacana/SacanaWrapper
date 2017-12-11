@@ -1,0 +1,5 @@
+[Plugin]
+Import=EthornellEditor.BurikoScript>Import
+Export=EthornellEditor.BurikoScript>Export
+File=EthornellEditor
+Initialize=false
