@@ -23,7 +23,7 @@ bld/
 [Ll]og/
 packages/
 PMan/
-ScanaWrapper/
+SacanaWrapper/
 StringTool/
 
 # Visual Studio 2015 cache/options directory
