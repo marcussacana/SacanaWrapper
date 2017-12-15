@@ -15,8 +15,10 @@ namespace PMan {
             if (!Directory.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins"))
                 Directory.CreateDirectory(AppDomain.CurrentDomain.BaseDirectory + "Plugins");
 
-            if (Args?.Length > 0 && Args[0].Trim(' ', '-', '/').ToLower() == "update")
+            if (Args?.Length > 0 && Args[0].Trim(' ', '-', '/').ToLower() == "update") {
                 AutoUpdate();
+                return;
+            }
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
