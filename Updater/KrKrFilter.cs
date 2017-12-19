@@ -14,7 +14,7 @@ namespace KrKrFilter {
 		//Change the Encoding Here, Eco = Read, Eco2 = Write
 		//Sample Encoding:
 		//Encoding.UTF8;
-		//Encoding.GetEncoding(932); // SJIS
+		//Encoding.GetEncoding(932); //] SJIS
 		//Encoding.Unicode; //UTF16
 		//Encoding.Default; //Operating System Default Encoding
         private Encoding Eco = Encoding.Unicode;
@@ -27,10 +27,28 @@ namespace KrKrFilter {
         private Dictionary<uint, string> Sufix2 = new Dictionary<uint, string>();
 
         public KSFilter(byte[] Script) {
+			if (Script[0] == 0xFE && Script[1] == 0xFE && Script[2] == 0x01 && Script[3] == 0xFF && Script[4] == 0xFE){					
+				Script = Decode(Script);
+			}
+			
             string Decoded = Eco.GetString(Script);
             Decoded = Decoded.Replace("\r\n", "\n");
             Lines = Decoded.Split('\n');
         }
+		
+		public byte[] Decode(byte[] Script){
+			byte[] Rst = new byte[Script.Length - 5];
+			for (int i = 5; i < Script.Length; i++){
+				byte b = Script[i];
+				Rst[i-5] = (byte)((DB((byte)(b >> 4)) << 4) + (DB(b) & 0xFF));
+			}
+			return Rst;
+		}
+		
+		private byte DB(byte b){
+			byte[] Arr = new byte[] { 0, 2, 1, 3, 8, 10, 9, 11, 4, 6, 5, 7, 12, 14, 13, 15 };
+			return Arr[b & 0xF];
+		}
 
         public string[] Import() {
             uint ID = 0, ID2 = 0;
