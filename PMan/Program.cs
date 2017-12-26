@@ -26,13 +26,16 @@ namespace PMan {
         }
 
         private static void AutoUpdate() {
-            AllocConsole();
             Console.WriteLine("Checking Updates...");
 
             Plugin[] Plugins = (from x in Updater.TreeRepositorie() where Updater.IsInstalled(x) select x).ToArray();
-
+            bool Updated = true;
             foreach (Plugin Plugin in Plugins) {
                 if (!Updater.IsUpdated(Plugin) && Ini.GetConfig("Plugin", "AutoUpdate", AppDomain.CurrentDomain.BaseDirectory + Plugin.File, false) != "false") {
+                    if (Updated) {
+                        AllocConsole();
+                        Updated = false;
+                    }
                     Console.WriteLine("Updating {0}", Plugin.Name);
                     Updater.Install(Plugin);
                 }
