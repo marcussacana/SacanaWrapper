@@ -7,8 +7,10 @@ using System.Text;//
 namespace TXT {
     public class Plain {
         string[] Script;
-		Encoding Eco = Encoding.UTF8;
+		Encoding Eco = Encoding.UTF8;		
 		bool BOOM = false;
+		
+		List<uint> Ignore;
         public Plain(byte[] Script) {
 			if (Script[0] == 0xFF && Script[1] == 0xFE)
 			{
@@ -24,8 +26,16 @@ namespace TXT {
 
         public string[] Import() {
 			List<string> Lines = new List<string>();
+			Ignore = new List<uint>();
 			for (uint i = 0; i < Script.Length; i += 2){
-				Lines.Add(Script[i].Replace("::BREAKLINE::", "\n"));				
+				if (string.IsNullOrEmpty(Script[i]))
+					continue;
+				
+				string Str = Script[i + 1].Replace("::BREAKLINE::", "\n");
+				if (Lines.Contains(Str)){
+					Ignore.Add(i + 1);
+				}
+				Lines.Add(Str);				
 			}
             return Lines.ToArray();
         }
@@ -39,7 +49,10 @@ namespace TXT {
 
         public byte[] Export(string[] Text) {
             StringBuilder Compiler = new StringBuilder();
-            for (int i = 0; i < Script.Length; i+=2){				
+            for (uint i = 0; i < Script.Length; i+=2){	
+				if (Ignore.Contains(i) || string.IsNullOrEmpty(Script[i]))
+					continue;
+				
                 Compiler.AppendLine(Script[i]);
 				Compiler.AppendLine(Text[i/2].Replace("\n", "::BREAKLINE::"));
 			}
