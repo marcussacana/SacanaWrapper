@@ -119,9 +119,14 @@ namespace SacanaWrapper
         }
 
         private bool Corrupted(string[] Strings) {
+            if (Strings.Length == 0)
+                return true;
+
+            char[] Corrupts = new char[] { '・' };
+        
             bool Matched = false;
             foreach (string str in Strings) {
-                if (str.Contains('�') || str.Trim('\x0').Contains('\x0'))//If looks corrupted, try load with other plugin, if fail, return this content.
+                if (str.Trim('\x0').Contains('\x0') || (from c in str.Trim('\x0') where (c & 0x7700) == 0x7700 || c < 10 || Corrupts.Contains(c) select c ).Count() != 0)
                     if (Matched)
                         return true;
                     else
