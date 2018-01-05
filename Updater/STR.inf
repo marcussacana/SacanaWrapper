@@ -1,5 +1,4 @@
 ﻿[Plugin]
-Version=1.0
 Import=STR.Processor>Import
 Export=STR.Processor>Export
 Extension=STRS
