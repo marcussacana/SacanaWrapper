@@ -123,15 +123,16 @@ namespace SacanaWrapper
                 return true;
 
             char[] Corrupts = new char[] { '・' };
-        
-            bool Matched = false;
+
+            uint Matchs = 0;
             foreach (string str in Strings) {
-                if (str.Trim('\x0').Contains('\x0') || (from c in str.Trim('\x0') where (c & 0x7700) == 0x7700 || c < 10 || Corrupts.Contains(c) select c ).Count() != 0)
-                    if (Matched)
-                        return true;
-                    else
-                        Matched = true;
+                if (str.Trim('\x0').Contains('\x0') || (from c in str.Trim('\x0') where (c & 0x7700) == 0x7700 || c < 10 || Corrupts.Contains(c) select c).Count() != 0)
+                    Matchs++;
             }
+
+            if (Matchs > Strings.Length / 2)
+                return true;
+
             return false;
         }
 
