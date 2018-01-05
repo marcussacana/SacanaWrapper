@@ -1,8 +1,8 @@
 ﻿#IMPORT System.Linq.dll
-using System;//
-using System.Collections.Generic;//
-using System.Linq;//
-using System.Text;//
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace TXT {
     public class Plain {

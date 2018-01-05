@@ -1,0 +1,5 @@
+﻿[Plugin]
+Import=NScript.Filter>Import
+Export=NScript.Filter>Export
+Extension=dat
+Initialize=true
