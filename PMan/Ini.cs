@@ -5,10 +5,15 @@ using System.Text;
 using System.Linq;
 
 class Ini {
-    internal static string GetConfig(string Key, string Name, string CfgFile, bool Required = true) {
-		VerifyHeader(CfgFile);
-		
-        string[] Lines = File.ReadAllLines(CfgFile, Encoding.UTF8);
+
+    internal static string GetConfig(string Key, string Name, string Path, bool Required = true) {
+        byte[] CFG = File.ReadAllBytes(Path);
+        return GetConfig(Key, Name, CFG, Required);
+    }
+    internal static string GetConfig(string Key, string Name, byte[] File, bool Required = true) {
+		VerifyHeader(ref File);
+
+        string[] Lines = Encoding.UTF8.GetString(File).Replace("\r\n", "\n").Split('\n');
         string AtualKey = string.Empty;
         foreach (string Line in Lines) {
             if (Line.StartsWith("[") && Line.EndsWith("]"))
@@ -28,13 +33,13 @@ class Ini {
         throw new Exception(string.Format("Config Error:\n[{0}]\n{1}=...", Key, Name));
     }
 	
-	internal static void VerifyHeader(string FilePath){
-		byte[] Content = File.ReadAllBytes(FilePath);
+	internal static void VerifyHeader(ref byte[] Content){
 		if (EqualsAt(Content, new byte[] { 0xEF, 0xBB, 0xBF }, 0)){
 			byte[] Tmp = new byte[Content.Length - 3];
 			for (uint i = 3; i < Content.LongLength; i++)
 				Tmp[i - 3] = Content[i];
-			File.WriteAllBytes(FilePath, Tmp);
+
+            Content = Tmp;
 		}
 	}
 	
@@ -49,16 +54,21 @@ class Ini {
 		
 		return true;
 	}
-	
-    internal static void SetConfig(string Key, string Name, string Value, string CfgFile) {
-		VerifyHeader(CfgFile);
-		
-        ConfigStatus cfg = GetConfigStatus(Key, Name, CfgFile);
-        if (cfg == ConfigStatus.NoFile) {
-            File.WriteAllText(CfgFile, "[" + Key + "]");
-            cfg = ConfigStatus.NoName;
+
+
+    internal static void SetConfig(string Key, string Name, string Value, string CfgPath) {
+        if (GetConfigStatus(Key, Name, CfgPath) == ConfigStatus.NoFile) {
+            File.WriteAllText(CfgPath, $"[{Key}]\r\n{Name}={Value}", Encoding.UTF8);
+        } else {
+            File.WriteAllBytes(CfgPath, SetConfig(Key, Name, Value, File.ReadAllBytes(CfgPath)));
         }
-        string[] Lines = File.ReadAllLines(CfgFile, Encoding.UTF8);
+    }
+    internal static byte[] SetConfig(string Key, string Name, string Value, byte[] Data) {
+        VerifyHeader(ref Data);
+       
+
+        ConfigStatus cfg = GetConfigStatus(Key, Name, Data);
+        string[] Lines = Encoding.UTF8.GetString(Data).Replace("\r\n", "\n").Split('\n');
         string AtualKey = string.Empty;
         if (cfg == ConfigStatus.Ok) {
             for (int i = 0; i < Lines.Length; i++) {
@@ -92,19 +102,27 @@ class Ini {
             NewLines[Lines.Length + 2] = string.Format("{0}={1}", Name, Value);
             Lines = NewLines;
         }
-        File.WriteAllLines(CfgFile, Lines, Encoding.UTF8);
+
+        StringBuilder SB = new StringBuilder();
+        foreach (string str in Lines)
+            SB.AppendLine(str);
+
+        return Encoding.UTF8.GetBytes(SB.ToString());
     }
 
     internal enum ConfigStatus {
         NoFile, NoKey, NoName, Ok
     }
 	
-    internal static ConfigStatus GetConfigStatus(string Key, string Name, string CfgFile) {
-        if (!File.Exists(CfgFile))
+    internal static ConfigStatus GetConfigStatus(string Key, string Name, string CfgPath) {
+        if (!File.Exists(CfgPath))
             return ConfigStatus.NoFile;
-		
-		VerifyHeader(CfgFile);		
-        string[] Lines = File.ReadAllLines(CfgFile, Encoding.UTF8);
+        return GetConfigStatus(Key, Name, File.ReadAllBytes(CfgPath));
+    }
+    internal static ConfigStatus GetConfigStatus(string Key, string Name, byte[] Data) {
+        VerifyHeader(ref Data);
+
+        string[] Lines = Encoding.UTF8.GetString(Data).Replace("\r\n", "\n").Split('\n');
         bool KeyFound = false;
         string AtualKey = string.Empty;
         foreach (string Line in Lines) {

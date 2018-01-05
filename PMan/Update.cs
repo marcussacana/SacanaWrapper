@@ -13,7 +13,7 @@ namespace PMan {
 
         internal static Plugin[] TreeRepositorie() {
             const string UpdateFile = RepoPath + "Updater.ini";
-            string[] PluginList = DownloadString(UpdateFile).Replace("\r\n", "\n").Split('\n');
+            byte[] PluginList = DownloadData(UpdateFile);
             uint PluginsCount = uint.Parse(Ini.GetConfig("Main", "Count", PluginList, true));
 
             List<string> Names = new List<string>();
@@ -86,7 +86,7 @@ namespace PMan {
 
         internal static bool Install(Plugin Plugin) {
             try {
-                string[] PIni = DownloadString(RepoPath + Plugin.File).Replace("\r\n", "\n").Split('\n');
+                byte[] PIni = DownloadData(RepoPath + Plugin.File);
 
                 string Module = string.Empty;
                 if (Ini.GetConfig("Plugin", "File;file;Archive;archive;Arc;arc", PIni, false) != string.Empty) {
@@ -114,7 +114,7 @@ namespace PMan {
                 }
 
                 File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Module, ModuleContent);
-                File.WriteAllLines(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File, PIni, Encoding.UTF8);
+                File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File, PIni);
                 Ini.SetConfig("Plugin", "Version", Plugin.LastVer, AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File);
                 
                 return true;
