@@ -1,4 +1,4 @@
-﻿[Plugin]
+[Plugin]
 Import=NXSBinEditor.BinHelper>Import
 Export=NXSBinEditor.BinHelper>Export
 Extension=bin
