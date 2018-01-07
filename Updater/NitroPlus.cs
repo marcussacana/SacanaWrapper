@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SGFilter
+namespace NPFilter
 {
 
     public class FullFilter {
@@ -25,13 +25,13 @@ namespace SGFilter
             FL = FilterLevel.Max;
         }
 
-        private SteinsGateFilter SGF;
+        private NitroPlusFilter NPF;
         private HighFilter HF;
         private PrefixFilter PF;
 		
         public string[] Import() {
-            SGF = new SteinsGateFilter(strings);
-            string[] Result = SGF.Import();
+            NPF = new NitroPlusFilter(strings);
+            string[] Result = NPF.Import();
             if (FL == FilterLevel.Normal || FL == FilterLevel.Max) {
                 HF = new HighFilter(Result);
                 Result = HF.Split();
@@ -52,7 +52,7 @@ namespace SGFilter
 			StringBuilder Compiler = new StringBuilder();
 			
 			
-			Content = SGF.Export(Content);
+			Content = NPF.Export(Content);
             for (uint i = 0; i < Content.Length; i++){					
                 Compiler.AppendLine(Content[i]);
 			}
@@ -64,7 +64,7 @@ namespace SGFilter
     internal enum Break {
         No, One, Double
     }
-    public class SteinsGateFilter
+    public class NitroPlusFilter
     {
         string[] FullScript;
         private StrPos[] StrInfo = new StrPos[0];
@@ -72,7 +72,7 @@ namespace SGFilter
         private Dictionary<uint, Break> Breaks = new Dictionary<uint, Break>();
         public Dictionary<string, bool> TagsBreaks = new Dictionary<string, bool>(); 
         private Dictionary<string, string> SmartTags = new Dictionary<string, string>();
-        public SteinsGateFilter(string[] Script) {
+        public NitroPlusFilter(string[] Script) {
             FullScript = Script;
         }
 
@@ -149,6 +149,43 @@ namespace SGFilter
 
             ParseTags(ref Str);
             string[] Content = Str.Split('\n');
+			
+			bool InScript = false;
+			for (uint i = Pos.Start, x = 0; i < Pos.Ends; i++){
+				string Line = Script[i];
+				if (Line.StartsWith("[") && Line.EndsWith("]")){
+					int Cnt1 = Line.Split('[').Length;
+					int Cnt2 = Line.Split(']').Length;
+					if (Cnt1 == 2 && Cnt2 == 2){
+						InsertAt(ref Content, Line, x++);
+						continue;
+					}
+				}
+				if (Line.TrimStart().StartsWith("//")){
+					InsertAt(ref Content, Line, x++);
+					continue;					
+				}
+				if (Line.TrimStart().StartsWith("{")){
+					if (Line.TrimEnd().EndsWith("}")){
+						InsertAt(ref Content, Line, x++);
+						continue;
+					}
+					InScript = true;
+					InsertAt(ref Content, Line, x++);
+					continue;
+				}
+				if (Line.TrimEnd().EndsWith("}")) {
+					InScript = false;
+					InsertAt(ref Content, Line, x++);
+					continue;
+				}
+				if (InScript){
+					InsertAt(ref Content, Line, x++);
+					continue;
+				}
+				
+				x++;
+			}
 
             //Merge Content
             Script = new string[Start.Length + Content.Length + End.Length];
@@ -157,6 +194,21 @@ namespace SGFilter
             End.CopyTo(Script, Start.Length + Content.Length);
         }
 
+		private void InsertAt(ref string[] Strings, string Value, uint At){
+			string[] Start = new string[At];
+			string[] End = new string[Strings.Length - At];
+			for (uint i = 0; i < At; i++){
+				Start[i] = Strings[i];
+			}
+			for (uint i = 0; i < End.Length; i++){
+				End[i] = Strings[i+At];
+			}
+			Strings = new string[Strings.Length + 1];
+			Start.CopyTo(Strings, 0);
+			Strings[At] = Value;
+			End.CopyTo(Strings, At + 1);
+		}
+		
         private void ParseTags(ref string Str) {
             Str = Str.Replace("\\n", "\n");
             Str = Str.Replace("\\t", "\n\n");
@@ -188,9 +240,34 @@ namespace SGFilter
 
         private string GetStr(uint Open, uint Close) {
             string Str = string.Empty;
+			bool InScript = false;
+			
             for (uint i = Open + 1; i < Close; i++) {
                 bool IsLast = i + 1 >= Close;
                 string Line = FullScript[i];
+				if (Line.StartsWith("[") && Line.EndsWith("]")){
+					int Cnt1 = Line.Split('[').Length;
+					int Cnt2 = Line.Split(']').Length;
+					if (Cnt1 == 2 && Cnt2 == 2)
+						continue;
+				}
+				if (Line.TrimStart().StartsWith("//")){
+					continue;
+				}
+				if (Line.TrimStart().StartsWith("{")){
+					if (Line.TrimEnd().EndsWith("}"))
+						continue;
+					InScript = true;
+					continue;
+				}
+				if (Line.TrimEnd().EndsWith("}")) {
+					InScript = false;
+					continue;
+				}
+				if (InScript)
+					continue;
+				
+				
                 if (!IsLast)
                     Str += Line + "\\n";
             }
@@ -277,7 +354,25 @@ namespace SGFilter
                 bool Ready = false;
                 LineInfo LI = new LineInfo();
                 LI.Pre = PrefixType.None;
+				LI.Prefix = string.Empty;
+				LI.Sufix = string.Empty;
                 int j = 0;
+				
+				if (Line.StartsWith("\\n")){
+					LI.Pre = PrefixType.Start;
+					LI.Prefix = "\\n";
+					string tl = Line.Substring(2, Line.Length - 2);
+					string tp = tl.TrimStart(' ', '　', '\t', '\n', '\r');
+					if (tp.Length != tl.Length){
+						LI.Prefix += tl.Substring(0, tl.Length - tp.Length);
+					}
+				}
+				
+				string tmp = Line.TrimStart(' ', '　', '\t', '\n', '\r');
+				if (tmp.Length != Line.Length){
+					LI.Prefix += Line.Substring(0, Line.Length - tmp.Length);
+					LI.Pre = PrefixType.Start;
+				}
 
                 if (Line.StartsWith("<") && !Ready) {
                     string tag = "<";
@@ -290,9 +385,16 @@ namespace SGFilter
                     else {
 
                         LI.Pre = PrefixType.Start;
-                        LI.Prefix = tag;
+                        LI.Prefix += tag;
                     }
                 }
+				
+				tmp = Line.TrimEnd(' ', '　', '\t', '\n', '\r');
+				if (tmp.Length != Line.Length){
+					LI.Sufix = Line.Substring(tmp.Length, Line.Length - tmp.Length);
+                    LI.Pre = LI.Pre == PrefixType.Start ? PrefixType.Both : PrefixType.End;
+				}
+				
                 if (Line.EndsWith(">") && j < Line.Length && !Ready) {
                     string tag = "<";
                     j = Line.Length;
@@ -304,8 +406,9 @@ namespace SGFilter
                         Ready = true;
                     }
                     else {
-                        LI.Pre = LI.Pre == PrefixType.Start ? PrefixType.Both : PrefixType.End;
-                        LI.Sufix = tag;
+						if (LI.Pre != PrefixType.Both)
+							LI.Pre = LI.Pre == PrefixType.Start ? PrefixType.Both : PrefixType.End;
+                        LI.Sufix = tag + LI.Sufix;
                     }
                 }
                 Table.Add(i, LI);
