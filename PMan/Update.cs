@@ -35,7 +35,8 @@ namespace PMan {
                         Extensions = Ini.GetConfig("Plugin." + i, "Extension;Formats", PluginList, true),
                         Type = TP,
                         LastVer = Ini.GetConfig("Plugin." + i, "Build;Version", PluginList, true),
-                        File = Ini.GetConfig("Plugin." + i, "File;Path", PluginList, true)
+                        File = Ini.GetConfig("Plugin." + i, "File;Path", PluginList, true),
+                        Old = Ini.GetConfig("Plugin." + i, "Old;Obsolete", PluginList, false)
                     });
                 } catch {
                     continue;
@@ -50,19 +51,28 @@ namespace PMan {
             return Ret;
         }
 
-        internal static bool IsInstalled(Plugin Plugin) =>
-            File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File);
-        
-
+        internal static bool IsInstalled(Plugin Plugin) {
+            if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File)) {
+                return true;
+            }
+            if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.Old)) {
+                return true;
+            }
+            return false;
+        }
         internal static bool IsUpdated(Plugin Plugin) {
             if (!IsInstalled(Plugin))
                 return false;
+
+            if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.Old)) {
+                return false;
+            }
 
             bool Updated = true;
             string Ver = Ini.GetConfig("Plugin", "Version;Ver;Build", AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File, false);
             if (string.IsNullOrWhiteSpace(Ver))
                 Updated = false;
-            
+
             string[] LVer = Ver.Trim().Split('.');
             string[] OVer = Plugin.LastVer.Trim().Split('.');
 
@@ -117,6 +127,10 @@ namespace PMan {
                 File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File, PIni);
                 Ini.SetConfig("Plugin", "Version", Plugin.LastVer, AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File);
                 
+                if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.Old)) {
+                    File.Delete(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.Old);
+                }
+
                 return true;
             }catch {
                 return false;
@@ -157,6 +171,6 @@ namespace PMan {
     }
 
     internal struct Plugin {
-        public string Name, Extensions, Type, LastVer, File;
+        public string Name, Extensions, Type, LastVer, File, Old;
     }
 }
