@@ -16,6 +16,8 @@ A Wrapper to use my tools as plugin to your software.
 
 # Default Plugins:
 Big part of my plugins is included in the Plugin Manager (PMan)
+
+Note: "Filer" tools in the Plugin Manager is to extract only the text of plain text scripts, Can't decompile a compiled script.
   
 ## How to Use:
 ![https://u.nya.is/gaqnnu.gif](https://u.nya.is/gaqnnu.gif)
