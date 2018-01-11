@@ -15,16 +15,7 @@ A Wrapper to use my tools as plugin to your software.
 
 
 # Default Plugins:
-  - KiriKiri [.SCN] [PSB/MDF]
-  - SiglusEngine [.SS] [NONE]
-  - ARCGameEngine [.BIN] [SYS]
-  - AutomataTranslator [.BIN/.TMD/.SMD] [RITE/NONE/NONE]
-  - Renpy [.RPY] (Decompiled Script filter)
-  - CatSceneEditor [.CST] [CatScene]
-  - EushullyEditor [.BIN] [SYS]
-  - LigthStringEditor [.DAT] [NONE]
-  - PropellerManager [.MSC] [NONE]
-  - ExHibit [.RLD] [NONE]
+Big part of my plugins is included in the Plugin Manager (PMan)
   
 ## How to Use:
 ![https://u.nya.is/gaqnnu.gif](https://u.nya.is/gaqnnu.gif)
