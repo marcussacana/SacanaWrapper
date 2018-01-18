@@ -1,0 +1,5 @@
+[Plugin]
+Import=UnisonShiftManager.DAT>Import
+Export=UnisonShiftManager.DAT>Export
+Extension=DAT
+Initialize=true
