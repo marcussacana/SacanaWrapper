@@ -1,0 +1,5 @@
+[Plugin]
+Import=OBJEditor.OBJHelper>Import
+Export=OBJEditor.OBJHelper>Export
+Extension=OBJ
+Initialize=true
