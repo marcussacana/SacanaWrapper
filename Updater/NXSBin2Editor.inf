@@ -1,0 +1,6 @@
+[Plugin]
+Import=NXSBinEditor.BinV2>Import
+Export=NXSBinEditor.BinV2>Export
+File=NXSBinEditor
+Extension=bin
+Initialize=true
