@@ -29,15 +29,18 @@ namespace PMan {
                     else if (TP.Contains("W"))
                         TP = "Write Only";
 
-                    Names.Add(Ini.GetConfig("Plugin." + i, "Name;Title", PluginList, true));
-                    Plugins.Add(new Plugin() {
+                    string Name = Ini.GetConfig("Plugin." + i, "Name;Title", PluginList, true);
+                    Plugin Plg = new Plugin() {
                         Name = Ini.GetConfig("Plugin." + i, "Name;Title", PluginList, true),
                         Extensions = Ini.GetConfig("Plugin." + i, "Extension;Formats", PluginList, true),
                         Type = TP,
                         LastVer = Ini.GetConfig("Plugin." + i, "Build;Version", PluginList, true),
                         File = Ini.GetConfig("Plugin." + i, "File;Path", PluginList, true),
                         Old = Ini.GetConfig("Plugin." + i, "Old;Obsolete", PluginList, false)
-                    });
+                    };
+
+                    Names.Add(Name);
+                    Plugins.Add(Plg);
                 } catch {
                     continue;
                 }
