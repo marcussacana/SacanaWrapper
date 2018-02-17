@@ -7,12 +7,9 @@ using System.Text;
 
 namespace SacanaWrapper
 {
-    public class Wrapper
-    {
+    public class Wrapper {
         string ImportPath = string.Empty;
         string ExportPath = string.Empty;
-        string StrIP = string.Empty;
-        string StrEP = string.Empty;
         private static string Lastest = string.Empty;
         DotNetVM Plugin;
 
@@ -24,88 +21,98 @@ namespace SacanaWrapper
         }
         public string[] Import(byte[] Script, string Extension = null, bool PreventCorrupt = false, bool TryLastPluginFirst = false) {
             string[] Strings = null;
-            string PluginDir = DotNetVM.AssemblyDirectory + "\\Plugins";       
+            string PluginDir = DotNetVM.AssemblyDirectory + "\\Plugins";
 
             if (File.Exists(Lastest) && TryLastPluginFirst) {
 #if !DebugPlugin
                 try {
-#endif
-                    Strings = TryImport(Lastest, Script);
-                    if (!Corrupted(Strings))
-                        return Strings;
-#if !DebugPlugin
-            } catch { }
+                    string[] Result = TryImport(Lastest, Script);
+                    if (Corrupted(Result) < Result.Length/2) {
+                        return Result;
+                    }
+                } catch { }
+#else
+                string[] Result = TryImport(Lastest, Script);
+                if (Corrupted(Result) < Result.Length / 2) {
+                    return Result;
+                }
 #endif
             }
 
-            string[] Plugins = GetFiles(PluginDir, "*.inf|*.ini|*.cfg");
-
-            List<string> Extensions = GetExtensions(Plugins);
-
+            Result[] Results;
             //Prepare Input Extension
             if (Extension != null && Extension.StartsWith(".")) {
                 Extension = Extension.Substring(1, Extension.Length - 1);
             }
-            if (Extension != null)
+            if (Extension != null) {
                 Extension = Extension.ToLower();
 
+                Results = (from x in ListPlugins(PluginDir, Extension) select TestPlugin(x, Script)).ToArray();
+                Results = (from x in Results where x.Compatible select x).ToArray();
+                Strings = SelectBestPlugin(Results);
 
-            //Initial Detection
-            if (Extension != null && CountMatch(Extensions, Extension) > 0) {
-                uint Fails = 0;
-                foreach (string Plugin in Plugins) {
-                    string PExt = Ini.GetConfig("Plugin", "Extensions;Extension;Ext;Exts;extensions;extension;ext;exts", Plugin, false);
-                    if (string.IsNullOrEmpty(PExt))
-                        continue;
-                    List<string> Exts = new List<string>(PExt.ToLower().Split('|'));
-                    if (Exts.Contains(Extension)) {
-#if !DebugPlugin
-                        try {
-#endif
-                            Strings = TryImport(Plugin, Script);
-                            if (Corrupted(Strings) && ++Fails < CountMatch(Extensions, Extension)) {
-                                StrIP = ImportPath;
-                                StrEP = ExportPath;
-                                continue;
-                            }
-                            return Strings;
-#if !DebugPlugin
-                    } catch { }
-#endif
-                }
-                }
-            }
-
-            //Brute Detection
-            foreach (string Plugin in Plugins) {
-#if !DebugPlugin
-                try {
-#endif
-                    Strings = TryImport(Plugin, Script);
-                    if (Corrupted(Strings)) {
-                        StrIP = ImportPath;
-                        StrEP = ExportPath;
-                        continue;
-                    }
+                if (Strings != null)
                     return Strings;
-#if !DebugPlugin
-                } catch { }
-#endif
             }
+
+            Results = (from x in ListPlugins(PluginDir) select TestPlugin(x, Script)).ToArray();
+            Results = (from x in Results where x.Compatible select x).ToArray();
+            Strings = SelectBestPlugin(Results);
+
             if (Strings == null)
                 throw new Exception("Supported Plugin Not Found.");
 
-            if (Corrupted(Strings) && PreventCorrupt)
-                return new string[0];
-            ImportPath = StrIP;
-            ExportPath = StrEP;
             return Strings;
         }
 
-        private uint CountMatch(List<string> Strings, string Pattern) {
-            return (uint)(from x in Strings where x == Pattern select x).LongCount(); ;
+        private string[] SelectBestPlugin(Result[] Plugins) {
+            uint Min = uint.MaxValue;
+            uint Best = uint.MaxValue;
+            for (uint i = 0; i < Plugins.Length; i++) {
+                if (Plugins[i].Error < Min) {
+                    Best = i;
+                    Min = Plugins[i].Error;
+                }
+            }
+
+            if (Best == uint.MaxValue)
+                return null;
+            
+            Result Sel = Plugins[Best];
+            ImportPath = Sel.ImportPath;
+            ExportPath = Sel.ExportPath;
+            Lastest = Sel.Plugin;
+            Plugin = Sel.Instance;
+
+            return Sel.Content;
         }
 
+        private Result TestPlugin(string Plugin, byte[] Script) {
+            try {
+                string[] Rst = TryImport(Plugin, Script);
+                return new Result {
+                    ImportPath = ImportPath,
+                    ExportPath = ExportPath,
+                    Content = Rst,
+                    Error = Corrupted(Rst),
+                    Plugin = Plugin,
+                    Instance = this.Plugin,
+                    Compatible = true
+                };
+            } catch {
+                return new Result {
+                    Compatible = false,
+                    Plugin = Plugin,
+                    Content = new string[0]
+                };
+            }
+        }
+        private string[] ListPlugins(string PluginDir, string Extension = null) {
+            if (Extension == null)
+                return GetFiles(PluginDir, "*.inf|*.ini|*.cfg");
+            return (from x in GetFiles(PluginDir, "*.inf|*.ini|*.cfg") where GetExtensions(new string[] { x }).Contains(Extension.ToLower()) select x).ToArray();
+        }
+        
         private List<string> GetExtensions(string[] Plugins) {
             List<string> Exts = new List<string>();
             foreach (string Plugin in Plugins) {
@@ -118,9 +125,9 @@ namespace SacanaWrapper
             return Exts;
         }
 
-        private bool Corrupted(string[] Strings) {
+        private uint Corrupted(string[] Strings) {
             if (Strings.Length == 0)
-                return true;
+                return uint.MaxValue;
 
             char[] Corrupts = new char[] { '・' };
 
@@ -128,12 +135,11 @@ namespace SacanaWrapper
             foreach (string str in Strings) {
                 if (str.Trim('\x0').Contains('\x0') || (from c in str.Trim('\x0') where (c & 0x7700) == 0x7700 || c < 10 || Corrupts.Contains(c) select c).Count() != 0)
                     Matchs++;
+                else if (string.IsNullOrWhiteSpace(str) || string.IsNullOrWhiteSpace(str.Trim(str[0])))
+                    Matchs++;
             }
 
-            if (Matchs > Strings.Length / 2)
-                return true;
-
-            return false;
+            return Matchs;
         }
 
         public void Export(string[] Strings, string SaveAs) {
@@ -192,5 +198,15 @@ namespace SacanaWrapper
                 Result = Result.Union(Directory.GetFiles(Dir, pattern)).ToArray();
             return Result;
         }
+    }
+
+    internal struct Result {
+        public string[] Content;
+        public uint Error;
+        public string ImportPath;
+        public string ExportPath;
+        public string Plugin;
+        public DotNetVM Instance;
+        public bool Compatible;
     }
 }
