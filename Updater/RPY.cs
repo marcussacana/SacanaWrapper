@@ -22,10 +22,12 @@ public class Filter {
 		Sufix = new Dictionary<int, string>();
 		List<string> Output = new List<string>();
 		for (int i = 0; i < Lines.Length; i++){
-			string Line = Lines[i].Trim(' ', '\t');
-			if (!Line.Contains("\"") || Line.StartsWith("$"))
-				continue;
-			IndexMap.Add(Output.Count, i);
+			string Line = Lines[i].Trim(' ', '\t');				
+			
+			if (!Line.Contains("\"") || Line.StartsWith("$") || Line.StartsWith("#"))
+				continue;			
+			
+			IndexMap.Add(Output.Count, i);			
 			Output.Add(Dump(Output.Count, Lines[i]));
 		}
 		return Output.ToArray();
@@ -75,8 +77,8 @@ public class Filter {
 			else if (c == '"' || c == 'r' || c == 'n' || c == '\\' || c == 't')
 				Escape = false;
 		}
-		this.Prefix.Add(Index, Prefix);
-		this.Sufix.Add(Index, Sufix);
+		this.Prefix[Index] = Prefix;
+		this.Sufix[Index] = Sufix;
 		Encode(ref Text, false);
 		return Text;
 	}
