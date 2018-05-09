@@ -1,0 +1,5 @@
+[Plugin]
+Import=EscudeEditor.BinScript>Import
+Export=EscudeEditor.BinScript>Export
+Extension=BIN
+Initialize=true
