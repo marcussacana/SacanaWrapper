@@ -40,6 +40,12 @@ internal class DotNetVM {
 
 
     Assembly Engine;
+    string DLL;
+    public string AssemblyPath {
+        get {
+            return DLL;
+        }
+    }
 
     internal static void Crash() =>
         Crash();
@@ -51,9 +57,9 @@ internal class DotNetVM {
     /// <param name="FunctionName">Target function name</param>
     /// <param name="Arguments">Function parameters</param>
     /// <returns></returns>
-    internal dynamic Call(string ClassName, string FunctionName, params object[] Arguments) => 
+    internal dynamic Call(string ClassName, string FunctionName, params object[] Arguments) =>
         Exec(Arguments, ClassName, FunctionName, Engine);
-    
+
 
     private object Instance = null;
 
@@ -94,6 +100,7 @@ internal class DotNetVM {
         }
         cp.GenerateExecutable = false;
         CompilerResults cr = cpd.CompileAssemblyFromSource(cp, sourceCode);
+        DLL = cr.PathToAssembly;
         return cr.CompiledAssembly;
 
     }
