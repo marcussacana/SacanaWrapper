@@ -25,7 +25,7 @@ namespace SacanaWrapper
         }
         public string[] Import(byte[] Script, string Extension = null, bool PreventCorrupt = false, bool TryLastPluginFirst = false) {
             string[] Strings = null;
-            string PluginDir = DotNetVM.AssemblyDirectory + "\\Plugins";       
+            string PluginDir = DotNetVM.AssemblyDirectory + "/Plugins";       
 
             string[] Plugins = GetFiles(PluginDir, "*.inf|*.ini|*.cfg");
 
