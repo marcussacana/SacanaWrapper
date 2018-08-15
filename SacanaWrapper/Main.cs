@@ -156,9 +156,9 @@ namespace SacanaWrapper
             ImportPath = Ini.GetConfig("Plugin", "Import;Imp;import;imp", Plugin, true);
             string CustomSource = Ini.GetConfig("Plugin", "File;file;Archive;archive;Arc;arc", Plugin, false);
 
-            string Path = System.IO.Path.GetDirectoryName(Plugin) + "\\",
-             SourcePath = System.IO.Path.GetDirectoryName(Plugin) + "\\",
-             SourcePath2 = System.IO.Path.GetDirectoryName(Plugin) + "\\";
+            string Path = System.IO.Path.GetDirectoryName(Plugin) + "/",
+             SourcePath = System.IO.Path.GetDirectoryName(Plugin) + "/",
+             SourcePath2 = System.IO.Path.GetDirectoryName(Plugin) + "/";
              
             
             if (!string.IsNullOrWhiteSpace(CustomSource)){
