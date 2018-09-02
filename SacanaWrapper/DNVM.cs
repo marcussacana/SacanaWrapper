@@ -110,7 +110,7 @@ internal class DotNetVM {
             string codeBase = Assembly.GetExecutingAssembly().CodeBase;
             UriBuilder uri = new UriBuilder(codeBase);
             string path = Uri.UnescapeDataString(uri.Path);
-            return System.IO.Path.GetDirectoryName(path);
+            return System.IO.Path.GetDirectoryName(path).TrimEnd('\\', '/');
         }
     }
 }

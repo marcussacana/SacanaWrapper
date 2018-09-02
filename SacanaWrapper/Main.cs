@@ -15,6 +15,7 @@ namespace SacanaWrapper
         string StrEP = string.Empty;
         private static string Lastest = string.Empty;
         private static string LastExt = string.Empty;
+        private static bool Initialized = false;
         DotNetVM Plugin;
 
 
@@ -25,7 +26,11 @@ namespace SacanaWrapper
         }
         public string[] Import(byte[] Script, string Extension = null, bool PreventCorrupt = false, bool TryLastPluginFirst = false) {
             string[] Strings = null;
-            string PluginDir = DotNetVM.AssemblyDirectory + "/Plugins";       
+            string PluginDir = DotNetVM.AssemblyDirectory + "/Plugins";
+            if (!Initialized) {
+                Initialized = true;
+                AppDomain.CurrentDomain.AppendPrivatePath(PluginDir);
+            }
 
             string[] Plugins = GetFiles(PluginDir, "*.inf|*.ini|*.cfg");
 
