@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Text;
 using System.Windows.Forms;
@@ -10,12 +9,14 @@ namespace PMan {
     internal static class Updater {
         const string RepoPath = "https://raw.githubusercontent.com/marcussacana/SacanaWrapper/updater/Updater/";
 
-
+        internal static string PluginDir => AppDomain.CurrentDomain.BaseDirectory + "Plugins/";
         internal static Plugin[] TreeRepositorie() {
-            const string UpdateFile = RepoPath + "Updater.ini";
-            byte[] PluginList = DownloadData(UpdateFile);
-            uint PluginsCount = uint.Parse(Ini.GetConfig("Main", "Count", PluginList, true));
-
+            byte[] PluginList = DownloadData(RepoPath + "Updater.ini");
+            uint PluginsCount = uint.Parse(Ini.GetConfig("Repo", "Count", PluginList, true));
+            uint Version = uint.Parse(Ini.GetConfig("Repo", "Version", PluginList, true));
+            if (Version > 2) {
+                throw new Exception("The Plugin Manager Is Outdated");
+            }
             List<string> Names = new List<string>();
             List<Plugin> Plugins = new List<Plugin>();
             for (uint i = 0; i < PluginsCount; i++) {
@@ -36,6 +37,7 @@ namespace PMan {
                         Type = TP,
                         LastVer = Ini.GetConfig("Plugin." + i, "Build;Version", PluginList, true),
                         File = Ini.GetConfig("Plugin." + i, "File;Path", PluginList, true),
+                        Dependencies = Ini.GetConfig("Plugin." + i, "Dependencies;References", PluginList, false),
                         Old = Ini.GetConfig("Plugin." + i, "Old;Obsolete", PluginList, false)
                     };
 
@@ -55,10 +57,10 @@ namespace PMan {
         }
 
         internal static bool IsInstalled(Plugin Plugin) {
-            if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File)) {
+            if (File.Exists(PluginDir + Plugin.File)) {
                 return true;
             }
-            if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.Old)) {
+            if (File.Exists(PluginDir + Plugin.Old)) {
                 return true;
             }
             return false;
@@ -67,12 +69,12 @@ namespace PMan {
             if (!IsInstalled(Plugin))
                 return false;
 
-            if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.Old)) {
+            if (File.Exists(PluginDir + Plugin.Old)) {
                 return false;
             }
 
             bool Updated = true;
-            string Ver = Ini.GetConfig("Plugin", "Version;Ver;Build", AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File, false);
+            string Ver = Ini.GetConfig("Plugin", "Version;Ver;Build", PluginDir + Plugin.File, false);
             if (string.IsNullOrWhiteSpace(Ver))
                 Updated = false;
 
@@ -126,12 +128,19 @@ namespace PMan {
                     }
                 }
 
-                File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Module, ModuleContent);
-                File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File, PIni);
-                Ini.SetConfig("Plugin", "Version", Plugin.LastVer, AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File);
+                File.WriteAllBytes(PluginDir + Module, ModuleContent);
+                File.WriteAllBytes(PluginDir + Plugin.File, PIni);
+                Ini.SetConfig("Plugin", "Version", Plugin.LastVer, PluginDir + Plugin.File);
                 
-                if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.Old)) {
-                    File.Delete(AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.Old);
+                if (File.Exists(PluginDir + Plugin.Old)) {
+                    File.Delete(PluginDir + Plugin.Old);
+                }
+
+                if (!string.IsNullOrWhiteSpace(Plugin.Dependencies)) {
+                    foreach (string Dependencie in Plugin.Dependencies.Split(';')) {
+                        byte[] Data = DownloadData(RepoPath + Dependencie);
+                        File.WriteAllBytes(PluginDir + Dependencie, Data);
+                    }
                 }
 
                 return true;
@@ -140,8 +149,8 @@ namespace PMan {
             }
         }
 
-        internal static bool Unistall(Plugin Plugin) {
-            string PIni = AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File;
+        internal static bool Uninstall(Plugin Plugin) {
+            string PIni = PluginDir + Plugin.File;
             try {
                 if (File.Exists(PIni))
                     File.Delete(PIni);
@@ -149,6 +158,7 @@ namespace PMan {
 
             return true;
         }
+        
 
         private static string DownloadString(string Url) => Encoding.UTF8.GetString(DownloadData(Url));
 
@@ -174,6 +184,6 @@ namespace PMan {
     }
 
     internal struct Plugin {
-        public string Name, Extensions, Type, LastVer, File, Old;
+        public string Name, Extensions, Type, LastVer, File, Old, Dependencies;
     }
 }

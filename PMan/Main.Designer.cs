@@ -49,7 +49,7 @@
             this.PluginList.Location = new System.Drawing.Point(12, 12);
             this.PluginList.Name = "PluginList";
             this.PluginList.Size = new System.Drawing.Size(677, 341);
-            this.PluginList.TabIndex = 0;
+            this.PluginList.TabIndex = 4;
             this.PluginList.UseCompatibleStateImageBehavior = false;
             this.PluginList.View = System.Windows.Forms.View.Details;
             // 
@@ -84,7 +84,7 @@
             this.DownloadBNT.Location = new System.Drawing.Point(552, 359);
             this.DownloadBNT.Name = "DownloadBNT";
             this.DownloadBNT.Size = new System.Drawing.Size(137, 23);
-            this.DownloadBNT.TabIndex = 1;
+            this.DownloadBNT.TabIndex = 3;
             this.DownloadBNT.Text = "Install/Update Selected";
             this.DownloadBNT.UseVisualStyleBackColor = true;
             this.DownloadBNT.Click += new System.EventHandler(this.DownloadBNT_Click);
@@ -106,7 +106,7 @@
             this.SearchBNT.Location = new System.Drawing.Point(315, 359);
             this.SearchBNT.Name = "SearchBNT";
             this.SearchBNT.Size = new System.Drawing.Size(61, 23);
-            this.SearchBNT.TabIndex = 3;
+            this.SearchBNT.TabIndex = 1;
             this.SearchBNT.Text = "Search";
             this.SearchBNT.UseVisualStyleBackColor = true;
             this.SearchBNT.Click += new System.EventHandler(this.SearchBNT_Click);
@@ -118,7 +118,7 @@
             this.SearchTB.Location = new System.Drawing.Point(12, 361);
             this.SearchTB.Name = "SearchTB";
             this.SearchTB.Size = new System.Drawing.Size(297, 20);
-            this.SearchTB.TabIndex = 4;
+            this.SearchTB.TabIndex = 0;
             // 
             // Main
             // 

@@ -31,7 +31,7 @@ namespace PMan {
             Plugin[] Plugins = (from x in Updater.TreeRepositorie() where Updater.IsInstalled(x) select x).ToArray();
             bool Updated = true;
             foreach (Plugin Plugin in Plugins) {
-                if (!Updater.IsUpdated(Plugin) && Ini.GetConfig("Plugin", "AutoUpdate", AppDomain.CurrentDomain.BaseDirectory + "Plugins\\" + Plugin.File, false) != "false") {
+                if (!Updater.IsUpdated(Plugin) && Ini.GetConfig("Plugin", "AutoUpdate", AppDomain.CurrentDomain.BaseDirectory + "Plugins/" + Plugin.File, false) != "false") {
                     if (Updated) {
                         AllocConsole();
                         Updated = false;

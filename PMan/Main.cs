@@ -59,7 +59,7 @@ namespace PMan {
 
             foreach (ListViewItem Name in PluginList.SelectedItems) {
                 Plugin Plugin = (from x in Plugins where Name.Text == x.Name && Name.SubItems[1].Text == x.Extensions select x).First();
-                Updater.Unistall(Plugin);
+                Updater.Uninstall(Plugin);
                 Application.DoEvents();
             }
 
