@@ -6,8 +6,6 @@ using System.Text;
 
 public class KamidoriHelper {
 
-    const string GameLineBreaker = "\n";
-    const int MaxWidth = 64;
     BinEditor Editor;
     public KamidoriHelper(byte[] Script) {
         Editor = new BinEditor(Script);
@@ -23,7 +21,7 @@ public class KamidoriHelper {
             String After = null;
 			if (i + 1 < Editor.StringsInfo.Length)
 				After = Editor.StringsInfo[i + 1];
-            if (After != null && Current.IsString && !Current.EndText && (After.IsString == true && Current.EndLine)) {
+            if (After != null && Current.IsString && !Current.EndText && After.IsString == true && Current.EndLine && After.EndText) {
                     Dialogues.Add(Current.Content + "\n" + After.Content);
                     i++;
             } else
@@ -39,8 +37,8 @@ public class KamidoriHelper {
             String After = null;
 			if (i + 1 < Editor.StringsInfo.Length)
 				After = Editor.StringsInfo[i + 1];
-			
-            if (After != null && Current.IsString && !Current.EndText && (After.IsString == true && Current.EndLine)) {
+
+            if (After != null && Current.IsString && !Current.EndText && After.IsString == true && Current.EndLine && After.EndText) {
                 string[] Lines = Strings[x++].Split('\n');
                 Current.Content = Lines[0];
                 if (Lines.Length > 1) {
@@ -48,6 +46,7 @@ public class KamidoriHelper {
                     for (int y = 1; y < Lines.Length; y++) {
                         After.Content = After.Content.TrimEnd() + " " + Lines[y];
                     }
+                    After.Content = After.Content.Trim();
                 }
                 i++;
             } else
