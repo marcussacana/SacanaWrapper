@@ -44,6 +44,7 @@ public class KamidoriHelper {
                 string[] Lines = Strings[x++].Split('\n');
                 Current.Content = Lines[0];
                 if (Lines.Length > 1) {
+					After.Content = string.Empty;
                     for (int y = 1; y < Lines.Length; y++) {
                         After.Content = After.Content.TrimEnd() + " " + Lines[y];
                     }
