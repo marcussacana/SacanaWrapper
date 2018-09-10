@@ -5,7 +5,6 @@ using System.IO;
 using System.Text;
 
 public class KamidoriHelper {
-
     BinEditor Editor;
     public KamidoriHelper(byte[] Script) {
         Editor = new BinEditor(Script);
@@ -46,8 +45,10 @@ public class KamidoriHelper {
                     for (int y = 1; y < Lines.Length; y++) {
                         After.Content = After.Content.TrimEnd() + " " + Lines[y];
                     }
-                    After.Content = After.Content.Trim();
-                }
+                    Editor.StringsInfo[i + 1].Content = After.Content.Trim();
+                } else {
+					Editor.StringsInfo[i + 1].Content = "";
+				}
                 i++;
             } else
                 Editor.StringsInfo[i].Content = Strings[x++];
