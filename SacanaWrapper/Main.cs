@@ -18,6 +18,27 @@ namespace SacanaWrapper
         private static bool Initialized = false;
         DotNetVM Plugin;
 
+        public static string EnumSupportedExtensions() {
+            string Result = string.Empty;
+            string PluginDir = DotNetVM.AssemblyDirectory + "/Plugins";
+            if (!Directory.Exists(PluginDir))
+                return string.Empty;
+            string[] Plugins = GetFiles(PluginDir, "*.inf|*.ini|*.cfg");
+            foreach (string Plugin in Plugins) {
+                string PExt = Ini.GetConfig("Plugin", "Extensions;Extension;Ext;Exts;extensions;extension;ext;exts", Plugin, false);
+                if (string.IsNullOrEmpty(PExt))
+                    continue;
+                List<string> Exts = new List<string>(PExt.ToLower().Split('|'));
+                foreach (string Ext in Exts) {
+                    string OExt = "*." + Ext.Trim('|');
+                    if (!Result.Contains(OExt))
+                        Result += OExt + "; ";
+                }
+            }
+            if (Result.EndsWith("; "))
+                Result = Result.Substring(0, Result.Length - 2);
+            return Result;
+        }
 
         public string[] Import(string ScriptPath, bool PreventCorrupt = false, bool TryLastPluginFirst = false) {
             byte[] Script = File.ReadAllBytes(ScriptPath);
@@ -27,6 +48,9 @@ namespace SacanaWrapper
         public string[] Import(byte[] Script, string Extension = null, bool PreventCorrupt = false, bool TryLastPluginFirst = false) {
             string[] Strings = null;
             string PluginDir = DotNetVM.AssemblyDirectory + "/Plugins";
+            if (!Directory.Exists(PluginDir))
+                return new string[0];
+
             if (!Initialized) {
                 Initialized = true;
                 AppDomain.CurrentDomain.AppendPrivatePath(PluginDir);

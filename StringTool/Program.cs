@@ -13,6 +13,7 @@ namespace StringTool {
                 Console.WriteLine("Usage:");
                 Console.WriteLine("-dump \"C:\\GameScript.bin\" \"C:\\ScriptStr.txt\"");
                 Console.WriteLine("-insert \"C:\\GameScript.bin\" \"C:\\ScriptStr.txt\"  \"C:\\NewScript.bin\"");
+                Console.WriteLine("-support");
                 Console.WriteLine("Or just drag&drop");
                 Console.ReadKey();
                 return;
@@ -46,7 +47,15 @@ namespace StringTool {
                 bool FileFound = false;
                 bool DumpMode = true;
                 bool CountMode = false;
-                CheckArgs(args, ref ParInd, ref FileFound, ref Input, ref Input2, ref Output, ref DumpMode, ref CountMode);
+                bool SupportMode = false;
+                CheckArgs(args, ref ParInd, ref FileFound, ref Input, ref Input2, ref Output, ref DumpMode, ref CountMode, ref SupportMode);
+
+                if (SupportMode) {
+                    Console.WriteLine("Supported Script Extensions:");
+                    Console.WriteLine(Wrapper.EnumSupportedExtensions());
+                    return;
+                }
+
 
                 Wrapper Engine = new Wrapper();
 
@@ -152,7 +161,7 @@ namespace StringTool {
             }
         }
 
-        private static void CheckArgs(string[] args, ref int ParInd, ref bool FileFound, ref string Input, ref string Input2, ref string Output, ref bool DumpMode, ref bool CountMode) {
+        private static void CheckArgs(string[] args, ref int ParInd, ref bool FileFound, ref string Input, ref string Input2, ref string Output, ref bool DumpMode, ref bool CountMode, ref bool SupportMode) {
             CountMode = false;
             foreach (string Arg in args) {
                 if (Arg.StartsWith("-") || Arg.StartsWith("\\") || Arg.StartsWith("//")) {
@@ -166,6 +175,9 @@ namespace StringTool {
                         case "count":
                             CountMode = true;
                             break;
+                        case "support":
+                            SupportMode = true;
+                            return;
                         default:
                             throw new Exception("\"{0}\" Isn't a valid paramter.");
                     }
