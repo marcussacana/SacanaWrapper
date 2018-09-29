@@ -5,17 +5,21 @@ using System.CodeDom.Compiler;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
-
-internal class DotNetVM {
+class DotNetVM {
     public enum Language {
         CSharp, VisualBasic
     }
-    internal DotNetVM(byte[] File) {
-        Engine = Assembly.Load(File);
-    }
 
-    internal DotNetVM(string Code) {
-        System.IO.StringReader Sr = new System.IO.StringReader(Code);
+    internal DotNetVM(byte[] Data) {
+        Assembly = Assembly.Load(Data);
+    }
+    internal DotNetVM(string Content, Language Lang = Language.CSharp) {
+        if (System.IO.File.Exists(Content)) {
+            DllInitialize(Content);
+            return;
+        }
+
+        System.IO.StringReader Sr = new System.IO.StringReader(Content);
         string[] Lines = new string[0];
         while (Sr.Peek() != -1) {
             string[] tmp = new string[Lines.Length + 1];
@@ -23,32 +27,24 @@ internal class DotNetVM {
             tmp[Lines.Length] = Sr.ReadLine();
             Lines = tmp;
         }
-        Engine = InitializeEngine(Lines, Language.CSharp);
+        Assembly = InitializeEngine(Lines, Lang);
     }
 
-    internal DotNetVM(string Code, Language Lang) {
-        System.IO.StringReader Sr = new System.IO.StringReader(Code);
-        string[] Lines = new string[0];
-        while (Sr.Peek() != -1) {
-            string[] tmp = new string[Lines.Length + 1];
-            Lines.CopyTo(tmp, 0);
-            tmp[Lines.Length] = Sr.ReadLine();
-            Lines = tmp;
-        }
-        Engine = InitializeEngine(Lines, Lang);
+    private void DllInitialize(string Dll) {
+        Assembly = Assembly.LoadFrom(Dll);
     }
+    public Assembly Assembly { get; private set; }
 
 
-    Assembly Engine;
     string DLL;
     public string AssemblyPath {
         get {
             return DLL;
         }
     }
-
-    internal static void Crash() =>
+    internal static void Crash() {
         Crash();
+    }
 
     /// <summary>
     /// Call a Function with arguments and return the result
@@ -57,52 +53,74 @@ internal class DotNetVM {
     /// <param name="FunctionName">Target function name</param>
     /// <param name="Arguments">Function parameters</param>
     /// <returns></returns>
-    internal dynamic Call(string ClassName, string FunctionName, params object[] Arguments) =>
-        Exec(Arguments, ClassName, FunctionName, Engine);
-
-
-    private object Instance = null;
-
+    internal dynamic Call(string ClassName, string FunctionName, params object[] Arguments) {
+        return exec(Arguments, ClassName, FunctionName, Assembly);
+    }
     internal void StartInstance(string Class, params object[] Arguments) {
-        Type fooType = Engine.GetType(Class);
+        Type fooType = Assembly.GetType(Class);
         Instance = Activator.CreateInstance(fooType, Arguments);
+        LastClass = Class;
     }
 
-    private object Exec(object[] Args, string Class, string Function, Assembly assembly) {
-        Type fooType = assembly.GetType(Class);
-        if (Instance == null)
-            Instance = assembly.CreateInstance(Class);
-        MethodInfo[] Methods = fooType.GetMethods().Where(x => x.Name == Function && x.GetParameters().Length == Args.Length).Select(x => x).ToArray();
+    private string LastClass;
+    private object Instance = null;
+    private object exec(object[] Args, string Class, string Function, Assembly assembly) {
+        if (LastClass != Class)
+            Instance = null;
+        LastClass = Class;
 
-        Exception Error = new Exception("Failed to search for the method.");
+        Type fooType = assembly.GetType(Class);
+
+        MethodInfo[] Methods = fooType.GetMethods().Where(x => x.Name == Function).Select(x => x).ToArray();
+
         foreach (MethodInfo Method in Methods) {
-            try {
-                return Method?.Invoke(Instance, BindingFlags.InvokeMethod, null, Args, CultureInfo.CurrentCulture);
-            } catch (Exception ex) {
-                Error = ex;
+            if (Method.GetParameters().Length == Args.Length) {
+                try {
+                    if (Instance == null && !Method.IsStatic)
+                        Instance = assembly.CreateInstance(Class);
+
+                    return Method?.Invoke(Instance, BindingFlags.InvokeMethod, null, Args, CultureInfo.CurrentCulture);
+                } catch (Exception ex) {
+                    if (Method == Methods.Last())
+                        throw ex;
+                }
             }
         }
 
-        throw Error;
+        throw new Exception("Failed to find the method...");
     }
 
+    const string ImportFlag = "#import ";
     private Assembly InitializeEngine(string[] lines, Language Lang) {
-        CodeDomProvider cpd = (Lang == Language.CSharp ? (CodeDomProvider)new CSharpCodeProvider() : new VBCodeProvider());
+        CodeDomProvider cpd = (Lang == Language.CSharp ? new CSharpCodeProvider() : (CodeDomProvider)new VBCodeProvider());
+
         var cp = new CompilerParameters();
         string sourceCode = string.Empty;
+        int Imports = 0;
         foreach (string line in lines) {
-            if (line.StartsWith("#IMPORT ")) {
-                string dll = line.Substring(8, line.Length - 8).Replace("%CD%", AssemblyDirectory);
-                cp.ReferencedAssemblies.Add(dll);
+            if (line.ToLower().StartsWith(ImportFlag)) {
+                cp.ReferencedAssemblies.Add(line.Substring(ImportFlag.Length, line.Length - ImportFlag.Length).Trim());
+                Imports++;
                 continue;
             }
-            sourceCode += line.Replace("\t", "") + '\n';
+            sourceCode += line + "\r\n";
         }
         cp.GenerateExecutable = false;
+        cp.ReferencedAssemblies.Add(Assembly.GetExecutingAssembly().Location);
         CompilerResults cr = cpd.CompileAssemblyFromSource(cp, sourceCode);
+
+        if (cr.Errors.HasErrors) {
+            string Log = "Interpreter Error(s) List:";
+            foreach (CompilerError Error in cr.Errors) {
+                string MSG = string.Format("[{0}]: {1}", Error.Line - Imports, Error.ErrorText);
+                Log += "\n" + MSG;
+            }
+
+            throw new Exception(Log);
+        }
+
         DLL = cr.PathToAssembly;
         return cr.CompiledAssembly;
-
     }
 
     public static string AssemblyDirectory {
