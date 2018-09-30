@@ -243,11 +243,11 @@ namespace KrKrFilter {
         }
 
 		private string TrimTags(string Line){
-			while (Line.EndsWith("]") && !Line.EndsWith("\\]")){
+			while (Line.EndsWith("]") && !Line.EndsWith("\\]") && Line.Contains("[")){
 				Line = Line.Substring(0, Line.LastIndexOf("["));
 			}
 				
-			while (Line.StartsWith("[") && !Line.EndsWith("\\[")){
+			while (Line.StartsWith("[") && !Line.EndsWith("\\[") && Line.Contains("]")){
 				Line = Line.Substring(Line.IndexOf("]") + 1, (Line.Length - Line.IndexOf("]")) - 1);
 			}
 			
