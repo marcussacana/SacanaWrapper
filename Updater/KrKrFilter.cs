@@ -14,7 +14,7 @@ namespace KrKrFilter {
 		//Change the Encoding Here, Eco = Read, Eco2 = Write
 		//Sample Encoding:
 		//Encoding.UTF8;
-		//Encoding.GetEncoding(932); //] SJIS
+		//Encoding.GetEncoding(932); //SJIS
 		//Encoding.Unicode; //UTF16
 		//Encoding.Default; //Operating System Default Encoding
         private Encoding Eco = Encoding.Unicode;
@@ -51,6 +51,7 @@ namespace KrKrFilter {
 		}
 
         public string[] Import() {
+			System.Diagnostics.Debugger.Break();
             uint ID = 0, ID2 = 0;
             List<string> Dialogues = new List<string>();
             bool InScript = false;
@@ -101,7 +102,7 @@ namespace KrKrFilter {
             return Eco2.GetBytes(Result);
         }
 
-        string[] TTag = new string[] { " text=\"", " t=\"", " char=\"", " actor=\"", " txt=\"" };
+        string[] TTag = new string[] { " text=\"", " t=\"", " char=\"", " actor=\"", " txt=\"", " name=\"" };
         private bool ContainsTextOnTag(string Line) {
 			if (Line == string.Empty)
 				return false;
@@ -209,14 +210,14 @@ namespace KrKrFilter {
                     }
                 }
 				
-				while (ResultLine.EndsWith("]") && !ResultLine.EndsWith("\\]")){
+				while (ResultLine.EndsWith("]") && !ResultLine.EndsWith("\\]") && ResultLine.Contains("[")){
 					if (!Sufix.ContainsKey(ID))
                         Sufix[ID] = string.Empty;
 					Sufix[ID] = Sufix[ID] + ResultLine.Substring(ResultLine.LastIndexOf("["), ResultLine.Length - ResultLine.LastIndexOf("["));
 					ResultLine = ResultLine.Substring(0, ResultLine.LastIndexOf("["));
 				}
 				
-				while (ResultLine.StartsWith("[") && !ResultLine.EndsWith("\\[")){
+				while (ResultLine.StartsWith("[") && !ResultLine.EndsWith("\\[") && ResultLine.Contains("]")) {
                     if (!Prefix.ContainsKey(ID))
                         Prefix[ID] = string.Empty;
 					Prefix[ID] += ResultLine.Substring(0, ResultLine.IndexOf("]") + 1);
