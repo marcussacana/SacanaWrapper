@@ -1,4 +1,4 @@
-﻿//#define DebugPlugin
+﻿#define DebugPlugin
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -214,21 +214,22 @@ namespace SacanaWrapper
             }
 
             string Source = null;
+#if DebugPlugin
+            bool Debug = true;
+#else 
+            bool Debug = false;
+#endif
 
             //Initialize Plugin
             bool InitializeWithScript = Ini.GetConfig("Plugin", "Initialize;InputOnCreate;initialize;inputoncreate", Plugin, false).ToLower() == "true";
             if (File.Exists(SourcePath) && Source1Time > Source2Time && Source1Time > DLLTime) {
-                this.Plugin = new DotNetVM(File.ReadAllText(SourcePath, Encoding.UTF8), DotNetVM.Language.CSharp);
+                this.Plugin = new DotNetVM(File.ReadAllText(SourcePath, Encoding.UTF8), DotNetVM.Language.CSharp, Path, Debug);
                 Source = SourcePath;
             } else if (File.Exists(SourcePath2) && Source2Time > Source1Time && Source2Time > DLLTime) {
-                this.Plugin = new DotNetVM(File.ReadAllText(SourcePath2, Encoding.UTF8), DotNetVM.Language.VisualBasic);
+                this.Plugin = new DotNetVM(File.ReadAllText(SourcePath2, Encoding.UTF8), DotNetVM.Language.VisualBasic, Path, Debug);
                 Source = SourcePath2;
             } else
                 this.Plugin = new DotNetVM(File.ReadAllBytes(Path));
-
-            if (Source != null && File.Exists(this.Plugin.AssemblyPath)) {
-                File.Copy(this.Plugin.AssemblyPath, Path, true);
-            }
 
             //Import
             Lastest = Plugin;

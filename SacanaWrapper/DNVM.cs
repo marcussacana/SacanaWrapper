@@ -13,7 +13,7 @@ class DotNetVM {
     internal DotNetVM(byte[] Data) {
         Assembly = Assembly.Load(Data);
     }
-    internal DotNetVM(string Content, Language Lang = Language.CSharp) {
+    internal DotNetVM(string Content, Language Lang = Language.CSharp, string FileName = null, bool Debug = false) {
         if (System.IO.File.Exists(Content)) {
             DllInitialize(Content);
             return;
@@ -27,7 +27,7 @@ class DotNetVM {
             tmp[Lines.Length] = Sr.ReadLine();
             Lines = tmp;
         }
-        Assembly = InitializeEngine(Lines, Lang);
+        Assembly = InitializeEngine(Lines, Lang, FileName, Debug);
     }
 
     private void DllInitialize(string Dll) {
@@ -42,6 +42,13 @@ class DotNetVM {
             return DLL;
         }
     }
+
+    public string AssemblyDebugSymbols {
+        get {
+            return System.IO.Path.GetDirectoryName(DLL) + "\\" + System.IO.Path.GetFileNameWithoutExtension(DLL) + ".pdb";
+        }
+    }
+
     internal static void Crash() {
         Crash();
     }
@@ -91,7 +98,7 @@ class DotNetVM {
     }
 
     const string ImportFlag = "#import ";
-    private Assembly InitializeEngine(string[] lines, Language Lang) {
+    private Assembly InitializeEngine(string[] lines, Language Lang, string FileName = null, bool Debug = false) {
         CodeDomProvider cpd = (Lang == Language.CSharp ? new CSharpCodeProvider() : (CodeDomProvider)new VBCodeProvider());
 
         var cp = new CompilerParameters();
@@ -106,6 +113,13 @@ class DotNetVM {
             sourceCode += line + "\r\n";
         }
         cp.GenerateExecutable = false;
+        if (Debug) {
+            cp.IncludeDebugInformation = true;
+            cp.TempFiles = new TempFileCollection(Environment.GetEnvironmentVariable("TEMP"), true);
+            cp.TempFiles.KeepFiles = true;
+        }
+        if (FileName != null)
+            cp.OutputAssembly = FileName;
         cp.ReferencedAssemblies.Add(Assembly.GetExecutingAssembly().Location);
         CompilerResults cr = cpd.CompileAssemblyFromSource(cp, sourceCode);
 
