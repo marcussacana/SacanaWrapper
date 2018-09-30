@@ -51,7 +51,6 @@ namespace KrKrFilter {
 		}
 
         public string[] Import() {
-			System.Diagnostics.Debugger.Break();
             uint ID = 0, ID2 = 0;
             List<string> Dialogues = new List<string>();
             bool InScript = false;
