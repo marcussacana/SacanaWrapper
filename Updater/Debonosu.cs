@@ -15,7 +15,6 @@ namespace Debonosu {
         }
 
         public string[] Import() {
-			System.Diagnostics.Debugger.Break();
 			List<string> Lines = new List<string>();
 			for (uint i = 0; i < Script.Length; i++) {
 				try{
