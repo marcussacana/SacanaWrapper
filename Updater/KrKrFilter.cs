@@ -1,5 +1,7 @@
-﻿#IMPORT System.Linq.dll
+#IMPORT System.Linq.dll
+#IMPORT System.Core.dll
 using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 using System.Text;
 
@@ -17,8 +19,8 @@ namespace KrKrFilter {
 		//Encoding.GetEncoding(932); //SJIS
 		//Encoding.Unicode; //UTF16
 		//Encoding.Default; //Operating System Default Encoding
-        private Encoding Eco = Encoding.Unicode;
-        private Encoding Eco2 = Encoding.Unicode;
+        private Encoding Eco = Encoding.UTF8;
+        private Encoding Eco2 = Encoding.UTF8;
         
 		private string[] Lines = new string[0];
         private Dictionary<uint, string> Prefix = new Dictionary<uint, string>();
@@ -66,7 +68,7 @@ namespace KrKrFilter {
                     Dialogues.Add(LineWork(true, ID++, Line).Replace("[r]", "\n"));
                 }
                 if (ContainsTextOnTag(Line)) {
-                    Dialogues.Add(TextOnTagWork(true, ID2++, Line));
+                    Dialogues.AddRange(GetTagText(Line));
                 }
             }
             return Dialogues.ToArray();
@@ -84,15 +86,17 @@ namespace KrKrFilter {
 
                 if (IsString(Line) && !InScript) {
                     string Input = LineWork(false, z++, Content[x++].Replace("\n", "[r]")).Replace("\n", "\r\n");
-
+/*
                     if (ContainsTextOnTag(Lines[i])) {
-                        TextOnTagWork(true, y, Input);
+                        int Count = GetTagText(Line).Length;
                         Input = TextOnTagWork(false, y++, Content[x++]);
                     }
-
+*/
                     Result += Input;
                 } else if (ContainsTextOnTag(Lines[i]) && !InScript) {
-                    Result += TextOnTagWork(false, y++, Content[x++]);
+                    int Count = GetTagText(Line).Length;
+                    Result += SetTagText(Line, Content.Skip((int)x).Take(Count).ToArray());
+					x += (uint)Count;
                 } else {
                     Result += Lines[i];
                 }
@@ -101,42 +105,104 @@ namespace KrKrFilter {
             return Eco2.GetBytes(Result);
         }
 
-        string[] TTag = new string[] { " text=\"", " t=\"", " char=\"", " actor=\"", " txt=\"", " name=\"" };
+        string[] TTag = new string[] { "t", "char", "actor", "txt", "name", "disp", "text" };
         private bool ContainsTextOnTag(string Line) {
 			if (Line == string.Empty)
 				return false;
 			/*if (Line[0] == '@')
 				return false;*/
             foreach (string T in TTag) {
-                if (Line.Contains(T)) {
+                if (Line.Contains(T + "=")) {
                     return true;
                 }
             }
             return false;
         }
+		
+		private string[] GetTagText(string Line){
+			List<string> Results = new List<string>();
+			foreach (string T in TTag) {
+				var Value = GetTagPropValue(Line, T);
+				if (string.IsNullOrEmpty(Value))
+					continue;
+				Results.Add(Value);
+			}
+			return Results.ToArray();
+		}
 
-        private string TextOnTagWork(bool Mode, uint ID, string Line) {
-            if (Mode) {
-                foreach (string T in TTag) {
-                    if (Line.Contains(T)) {
-                        int BI = Line.IndexOf(T) + T.Length;
-                        int Len = Line.IndexOf("\"", BI) - BI;
-                        Prefix2[ID] = Line.Substring(0, BI);
-                        Sufix2[ID] = Line.Substring(BI + Len, Line.Length - (BI + Len));
-                        return Line.Substring(BI, Len);
-                    }
-                }
-            } else {
-                foreach (string T in TTag) {
-                    if (Prefix2[ID].Contains(T)) {
-                        return Prefix2[ID] + Line + Sufix2[ID];
-                    }
-
-                }
-            }
+        private string SetTagText(string Line, string[] Values) {
+			int i = 0;
+			foreach (string T in TTag) {
+				var Value = GetTagPropValue(Line, T);
+				if (string.IsNullOrEmpty(Value))
+					continue;
+				Line = SetTagPropValue(Line, T, Values[i++]);
+			}
             return Line;
         }
 
+		
+		private string GetTagPropValue(string Tag, string Prop){
+			if (!Tag.Contains(Prop) || !Tag.Contains(" "))
+				return null;
+			Tag = Tag.Substring(Tag.IndexOf(" ")+1);
+			while (true){
+				if (!Tag.Contains("="))
+					break;
+				
+				while (Tag.Split('=').First().Contains(" "))
+					Tag = Tag.Substring(Tag.IndexOf(" ")+1); 
+				
+				string CurProp = Tag.Split('=').First().TrimStart();
+				bool RightProp = CurProp == Prop;
+				Tag = Tag.Substring(Tag.IndexOf("=")+1);
+				string Value = string.Empty;
+				if (Tag.First() == '\'' || Tag.First() == '"') {
+					char Close = Tag.First();
+					bool Escape = false;
+					while (true){
+						Tag = Tag.Substring(1);
+						if (Escape){
+							Escape = false;
+							Value += Tag.First();
+							continue;
+						}
+						if (Tag.First() == '\\'){
+							Escape = true;
+							continue;
+						}
+						if (Tag.First() == Close){
+							Tag = Tag.Substring(1);
+							break;
+						}
+						Value += Tag.First();
+					}
+				} else if (Tag.Contains(" ")) {
+					Value = Tag.Split(' ').First();
+					Tag = Tag.Substring(Tag.IndexOf(" ") + 1);
+                } else {
+					Value = Tag.Split(']').First();
+					Tag = Tag.Substring(Tag.IndexOf("]") + 1);
+				}
+				if (RightProp)
+					return Value;
+			}
+			return null;
+		}
+		
+		private string SetTagPropValue(string Tag, string Prop, string NValue){
+			var Possibilities = new string[] { 
+				string.Format(" {0}={1}", Prop, GetTagPropValue(Tag, Prop)), 
+				string.Format(" {0}=\"{1}\"", Prop, GetTagPropValue(Tag, Prop)), 
+				string.Format(" {0}='{1}'", Prop, GetTagPropValue(Tag, Prop)), 
+			};
+			foreach (var Possibility in Possibilities){
+				if (!Tag.Contains(Possibility))
+					continue;
+				return Tag.Replace(Possibility, " " + Prop + "=" + (NValue.Contains(" ") ? "\"" + NValue.Replace("\"", "\\\"") + "\"" : NValue));
+			}
+		    return Tag;
+		}
 
         private string LineWork(bool Mode, uint ID, string Line, bool While = false) {
             string[] Tags = new string[]
