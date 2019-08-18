@@ -30,10 +30,13 @@ namespace TXT {
 			for (uint i = 0; i < Script.Length; i += 2){
 				if (string.IsNullOrEmpty(Script[i]))
 					continue;
+
+				uint ID = i;//Untranslated Lines
+			  //uint ID = i + 1;//Translated Lines
 				
-				string Str = Script[i + 1].Replace("::BREAKLINE::", "\n");
+				string Str = Script[ID].Replace("::BREAKLINE::", "\n");
 				if (Lines.Contains(Str)){
-					Ignore.Add(i + 1);
+					//Ignore.Add(ID);
 				}
 				Lines.Add(Str);				
 			}
@@ -49,12 +52,12 @@ namespace TXT {
 
         public byte[] Export(string[] Text) {
             StringBuilder Compiler = new StringBuilder();
-            for (uint i = 0; i < Script.Length; i+=2){	
-				if (Ignore.Contains(i) || string.IsNullOrEmpty(Script[i]))
+            for (uint i = 0; i < Text.Length; i++){	
+				if (Ignore.Contains(i*2) || string.IsNullOrEmpty(Script[i*2]))
 					continue;
 				
-                Compiler.AppendLine(Script[i]);
-				Compiler.AppendLine(Text[i/2].Replace("\n", "::BREAKLINE::"));
+                Compiler.AppendLine(Script[i*2]);
+				Compiler.AppendLine(Text[i].Replace("\n", "::BREAKLINE::"));
 			}
 			
             byte[] barr = Eco.GetBytes(Compiler.ToString());
