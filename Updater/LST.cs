@@ -27,10 +27,8 @@ namespace TXT {
         public string[] Import() {
 			List<string> Lines = new List<string>();
 			Ignore = new List<uint>();
-			for (uint i = 0; i < Script.Length; i += 2){
-				if (string.IsNullOrEmpty(Script[i]))
-					continue;
-
+			for (uint i = 0; i + 1 < Script.Length; i += 2){
+				
 				uint ID = i;//Untranslated Lines
 			  //uint ID = i + 1;//Translated Lines
 				
@@ -53,7 +51,7 @@ namespace TXT {
         public byte[] Export(string[] Text) {
             StringBuilder Compiler = new StringBuilder();
             for (uint i = 0; i < Text.Length; i++){	
-				if (Ignore.Contains(i*2) || string.IsNullOrEmpty(Script[i*2]))
+				if (Ignore.Contains(i*2))
 					continue;
 				
                 Compiler.AppendLine(Script[i*2]);
