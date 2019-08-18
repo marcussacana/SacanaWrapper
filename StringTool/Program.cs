@@ -124,6 +124,7 @@ namespace StringTool
             catch (Exception ex)
             {
                 Console.WriteLine("Failed to Process: {0}", Path.GetFileName(Input));
+                Console.WriteLine("EX: {0}" + ex.ToString());
             }
         }
 
