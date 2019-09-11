@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -10,13 +11,22 @@ namespace PMan {
         const string RepoPath = "https://raw.githubusercontent.com/marcussacana/SacanaWrapper/updater/Updater/";
 
         internal static string PluginDir => AppDomain.CurrentDomain.BaseDirectory + "Plugins/";
+        internal static string WrapperPath => AppDomain.CurrentDomain.BaseDirectory + "SacanaWrapper.dll";
         internal static Plugin[] TreeRepositorie() {
             byte[] PluginList = DownloadData(RepoPath + "Updater.ini");
             uint PluginsCount = uint.Parse(Ini.GetConfig("Repo", "Count", PluginList, true));
             uint Version = uint.Parse(Ini.GetConfig("Repo", "Version", PluginList, true));
-            if (Version > 2) {
+            var WrapperVer = new Version(Ini.GetConfig("Repo", "WrapperVer", PluginList, true));
+            
+            if (Version > 3) {
                 throw new Exception("The Plugin Manager Is Outdated");
             }
+
+            if (WrapperVer > new Version(FileVersionInfo.GetVersionInfo(WrapperPath).FileVersion))
+            {
+                throw new Exception("The SacanaWrapper Is Outdated");
+            }
+
             List<string> Names = new List<string>();
             List<Plugin> Plugins = new List<Plugin>();
             for (uint i = 0; i < PluginsCount; i++) {

@@ -107,7 +107,11 @@ class DotNetVM {
         int Imports = 0;
         foreach (string line in lines) {
             if (line.ToLower().StartsWith(ImportFlag)) {
-                cp.ReferencedAssemblies.Add(line.Substring(ImportFlag.Length, line.Length - ImportFlag.Length).Trim());
+                string ReferenceName = line.Substring(ImportFlag.Length, line.Length - ImportFlag.Length).Trim();
+                if (ReferenceName.Contains("//"))
+                    ReferenceName = ReferenceName.Substring(0, ReferenceName.IndexOf("//")).Trim();
+                ReferenceName = ReferenceName.Replace("%CD%", AppDomain.CurrentDomain.BaseDirectory);
+                cp.ReferencedAssemblies.Add(ReferenceName);
                 Imports++;
                 continue;
             }
