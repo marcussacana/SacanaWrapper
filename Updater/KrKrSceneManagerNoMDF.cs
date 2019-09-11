@@ -1,8 +1,5 @@
 ﻿#IMPORT %CD%\Plugins\KrKrSceneManager.dll
 using KrKrSceneManager;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
 
 public class KrKrSceneManagerNoMDF {
     PSBAnalyzer Editor;
