@@ -249,22 +249,33 @@ namespace StringTool
                     FileFound = true;
                     if (Arg.Trim().ToLower().EndsWith(".txt"))
                     {
-                        DumpMode = false;
-                        string[] Files;
+                        string[] Files = Directory.GetFiles(ArgDir, ArgFNWE + ".*");
+
+                        if (Files.Length <= 1 && ArgFNWE.ToLower().EndsWith("-dump"))
+                        {
+                            ArgFNWE = ArgFNWE.Substring(0, ArgFNWE.Length - "-dump".Length); 
+                            Files = Directory.GetFiles(ArgDir, ArgFNWE + ".*");
+                        }
 
 
-                        Files = Directory.GetFiles(ArgDir, ArgFNWE + ".*");
                         foreach (string f in Files)
                         {
+                            if (Path.GetFileName(f).ToLower() == Path.GetFileName(Arg).ToLower())
+                                continue;
+
                             string ext = ".";
                             if (f.Contains("."))
                                 ext = Path.GetExtension(f);
-                            if (!f.Trim().ToLower().EndsWith(".txt"))
-                            {
-                                Input = f;
-                                Input2 = Arg;
-                                Output = ArgDir + "\\" + ArgFNWE + "_New" + ext;
-                            }
+
+                            DumpMode = false;
+                            Input = f;
+                            Input2 = Arg;
+                            Output = ArgDir + "\\" + ArgFNWE + "_New" + ext;
+                        }
+
+                        if (DumpMode)
+                        {
+                            Output = ArgDir + "\\" + ArgFNWE + "-Dump.txt";
                         }
                     }
                     else
