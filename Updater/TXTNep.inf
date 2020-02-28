@@ -1,0 +1,5 @@
+[Plugin]
+Import=TXT.PlainNep>Import
+Export=TXT.PlainNep>Export
+Extensions=TXT
+Initialize=true
