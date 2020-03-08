@@ -53,7 +53,7 @@ namespace KrKrFilter {
 		}
 
         public string[] Import() {
-            uint ID = 0, ID2 = 0;
+            uint ID = 0;
             List<string> Dialogues = new List<string>();
             bool InScript = false;
             foreach (string Line in Lines) {
@@ -77,21 +77,22 @@ namespace KrKrFilter {
         public byte[] Export(string[] Content) {
             string Result = "";
             bool InScript = false;
-            for (uint i = 0, x = 0, y = 0, z = 0; i < Lines.Length; i++) {
+            for (uint i = 0, x = 0, z = 0; i < Lines.Length; i++) {
                 string Line = Lines[i];
-                if (Line.Trim() == "[iscript]")
+                if (Line.Trim() == "[iscript]" || Line.Trim() == "@iscript")
                     InScript = true;
-                if (Line.Trim() == "[endscript]")
+                if (Line.Trim() == "[endscript]" || Line.Trim() == "@endscript")
                     InScript = false;
 
                 if (IsString(Line) && !InScript) {
                     string Input = LineWork(false, z++, Content[x++].Replace("\n", "[r]")).Replace("\n", "\r\n");
-/*
+
                     if (ContainsTextOnTag(Lines[i])) {
                         int Count = GetTagText(Line).Length;
-                        Input = TextOnTagWork(false, y++, Content[x++]);
+                        Input = SetTagText(Line, Content.Skip((int)x).Take(Count).ToArray());
+						x += (uint)Count;
                     }
-*/
+
                     Result += Input;
                 } else if (ContainsTextOnTag(Lines[i]) && !InScript) {
                     int Count = GetTagText(Line).Length;
@@ -104,13 +105,18 @@ namespace KrKrFilter {
             }
             return Eco2.GetBytes(Result);
         }
-
-        string[] TTag = new string[] { "t", "char", "actor", "txt", "name", "disp", "text" };
+		
+		string[] STags = new string[] { "chara_" };//Non Text tags with similar Text Tag Proprieties
+        string[] TTag = new string[] { "t", "char", "chara", "actor", "txt", "name", "disp", "text" };
         private bool ContainsTextOnTag(string Line) {
 			if (Line == string.Empty)
 				return false;
 			/*if (Line[0] == '@')
 				return false;*/
+			foreach (string T in STags){
+				if (Line.Contains(T))
+					return false;
+			}
             foreach (string T in TTag) {
                 if (Line.Contains(T + "=")) {
                     return true;
@@ -121,6 +127,10 @@ namespace KrKrFilter {
 		
 		private string[] GetTagText(string Line){
 			List<string> Results = new List<string>();
+			foreach (string T in STags){
+				if (Line.Contains(T))
+					return Results.ToArray();
+			}
 			foreach (string T in TTag) {
 				var Value = GetTagPropValue(Line, T);
 				if (string.IsNullOrEmpty(Value))
@@ -132,6 +142,10 @@ namespace KrKrFilter {
 
         private string SetTagText(string Line, string[] Values) {
 			int i = 0;
+			foreach (string T in STags){
+				if (Line.Contains(T))
+					return Line;
+			}
 			foreach (string T in TTag) {
 				var Value = GetTagPropValue(Line, T);
 				if (string.IsNullOrEmpty(Value))
@@ -243,22 +257,17 @@ namespace KrKrFilter {
 					ResultLine = New;
 				}
 				
-                if (ResultLine.Trim().StartsWith("[charaname")) {
-                    if (!Prefix.ContainsKey(ID))
-                        Prefix[ID] = string.Empty;
+				string[] DynTags = new string[] { "[charaname", "[link", "[cname" };
+				foreach (string DynTag in DynTags){
+					if (ResultLine.Trim().StartsWith(DynTag)) {
+						if (!Prefix.ContainsKey(ID))
+							Prefix[ID] = string.Empty;
 
-                    int Bef = ResultLine.IndexOf("]") + 1;
-                    Prefix[ID] += ResultLine.Substring(0, Bef);
-                    ResultLine = ResultLine.Substring(Bef, ResultLine.Length - Bef);
-                }
-			    if (ResultLine.Trim().StartsWith("[link")) {
-                    if (!Prefix.ContainsKey(ID))
-                        Prefix[ID] = string.Empty;
-
-                    int Bef = ResultLine.IndexOf("]") + 1;
-                    Prefix[ID] += ResultLine.Substring(0, Bef);
-                    ResultLine = ResultLine.Substring(Bef, ResultLine.Length - Bef);
-                }
+						int Bef = ResultLine.IndexOf("]") + 1;
+						Prefix[ID] += ResultLine.Substring(0, Bef);
+						ResultLine = ResultLine.Substring(Bef, ResultLine.Length - Bef);
+					}
+				}
 
                 for (uint i = 0; i < Tags.Length; i++) {
                     if (ResultLine.StartsWith(Tags[i])) {
