@@ -89,7 +89,7 @@ namespace KrKrFilter {
 
                     if (ContainsTextOnTag(Lines[i])) {
                         int Count = GetTagText(Line).Length;
-                        Input = SetTagText(Line, Content.Skip((int)x).Take(Count).ToArray());
+                        Input = SetTagText(Input, Content.Skip((int)x).Take(Count).ToArray());
 						x += (uint)Count;
                     }
 
