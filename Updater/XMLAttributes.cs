@@ -13,7 +13,7 @@ public class XMLAttributes {
         this.Script = Script;
     }
     
-    string[] Attributes = new string[] { "description", "description", "Text",  "Text0", "Text1", "Text2", "Text3", "text", "text0", "text1", "text2", "text3" };
+    string[] Attributes = new string[] { "Description", "description", "Text",  "Text0", "Text1", "Text2", "Text3", "text", "text0", "text1", "text2", "text3" };
     
     string XPATH {
         get {
