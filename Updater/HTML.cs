@@ -80,7 +80,7 @@ namespace HTML {
 
         public byte[] Export(string[] Text) {
 			StringBuilder SB = new StringBuilder(Script);
-            for (int i = 0; i < Infos.Count; i++)
+            for (int i = Infos.Count - 1; i >= 0; i--)
                 SetText(Infos[i], SB, Text[i]);
 
             return Eco.GetBytes(SB.ToString());
@@ -107,6 +107,7 @@ namespace HTML {
 
         private void SetText(TextInfo Info, StringBuilder Builder, string Content) {
             Builder.Remove(Info.Begin, Info.Length); 
+            Builder.Insert(Info.Begin, Content);
         }
     }
 }
