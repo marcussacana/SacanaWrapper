@@ -1,10 +1,12 @@
 ﻿//#define DebugPlugin
+using ImpromptuInterface;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace SacanaWrapper
 {
@@ -21,9 +23,9 @@ namespace SacanaWrapper
         private static string LastExt = string.Empty;
         DotNetVM Plugin;
 
-        public static string EnumSupportedExtensions() {
+        public async static Task<string> EnumSupportedExtensions() {
             string Result = string.Empty;
-            PluginInfo[] Plugins = GetPlugins();
+            PluginInfo[] Plugins = await GetPlugins();
             foreach (var Plugin in Plugins) {
                 if (string.IsNullOrWhiteSpace(Plugin.Extensions) || Plugin.Extensions.Trim(' ', '(', ')').ToLower() == "none")
                     continue;
@@ -35,15 +37,15 @@ namespace SacanaWrapper
             return Result;
         }
 
-        public string[] Import(string ScriptPath, bool PreventCorrupt = false, bool TryLastPluginFirst = false) {
+        public async Task<string[]> Import(string ScriptPath, bool PreventCorrupt = false, bool TryLastPluginFirst = false) {
             byte[] Script = File.ReadAllBytes(ScriptPath);
             string Extension = Path.GetExtension(ScriptPath);
-            return Import(Script, Extension, PreventCorrupt, TryLastPluginFirst);
+            return await Import(Script, Extension, PreventCorrupt, TryLastPluginFirst);
         }
-        public string[] Import(byte[] Script, string Extension = null, bool PreventCorrupt = false, bool TryLastPluginFirst = false) {
+        public async Task<string[]> Import(byte[] Script, string Extension = null, bool PreventCorrupt = false, bool TryLastPluginFirst = false) {
             string[] Strings = null;
 
-            PluginInfo[] Plugins = GetPlugins();
+            PluginInfo[] Plugins = await GetPlugins();
 
             List<string> Extensions = GetExtensions(Plugins);
 
@@ -58,7 +60,7 @@ namespace SacanaWrapper
 #if !DebugPlugin
                 try {
 #endif
-                    Strings = TryImport(Lastest, Script);
+                    Strings = await TryImport(Lastest, Script);
                     if (!Corrupted(Strings))
                         return Strings;
 #if !DebugPlugin
@@ -78,7 +80,7 @@ namespace SacanaWrapper
 #if !DebugPlugin
                         try {
 #endif
-                            Strings = TryImport(Plugin, Script);
+                            Strings = await TryImport(Plugin, Script);
                             if (Corrupted(Strings) && ++Fails < CountMatch(Extensions, Extension)) {
                                 StrIP = ImportPath;
                                 StrEP = ExportPath;
@@ -97,7 +99,7 @@ namespace SacanaWrapper
 #if !DebugPlugin
                 try {
 #endif
-                    Strings = TryImport(Plugin, Script);
+                    Strings = await TryImport(Plugin, Script);
                     if (Corrupted(Strings)) {
                         StrIP = ImportPath;
                         StrEP = ExportPath;
@@ -165,7 +167,7 @@ namespace SacanaWrapper
             return (byte[])Plugin.Call(Exp[0], Exp[1], new object[] { Strings });
         }
 
-        private string[] TryImport(PluginInfo Plugin, byte[] Script) {
+        private async Task<string[]> TryImport(PluginInfo Plugin, byte[] Script) {
             if (string.IsNullOrWhiteSpace(Plugin.File))
                 return null;
 
@@ -174,55 +176,19 @@ namespace SacanaWrapper
                 foreach (string Dependencie in Plugin.Dependencies.Split(';')) {
                     try
                     {
-                        byte[] DepData = Download(Dependencie);
+                        byte[] DepData = await Download(Dependencie);
                         System.Reflection.Assembly.Load(DepData);
                     }
                     catch { }
                 }
             }
 
-            byte[] INI = Download(Plugin.File);
-            ExportPath = Ini.GetConfig("Plugin", "Export;Exp;export;exp", INI, true);
-            ImportPath = Ini.GetConfig("Plugin", "Import;Imp;import;imp", INI, true);
-            string CustomSource = Ini.GetConfig("Plugin", "File;file;Archive;archive;Arc;arc", INI, false);
+            var Handler = await GetPluginHandler(Plugin);
+            this.Plugin = Handler.VM;
 
-            int Mode = 0;
-            byte[] Data;
-            try
-            {
-                Data = Download(CustomSource + ".cs");
-            }
-            catch {
-                try
-                {
-                    Mode = 1;
-                    Data = Download(CustomSource + ".vb");
-                }
-                catch {
-                    Mode = 2;
-                    Data = Download(CustomSource + ".dll");
-                }
-            }
-
-#if DebugPlugin
-            bool Debug = true;
-#else 
-            bool Debug = false;
-#endif
-
-            //Initialize Plugin
-            bool InitializeWithScript = Ini.GetConfig("Plugin", "Initialize;InputOnCreate;initialize;inputoncreate", INI, false).ToLower() == "true";
-            switch (Mode) {
-                case 0:
-                    this.Plugin = new DotNetVM(Encoding.UTF8.GetString(Data), DotNetVM.Language.CSharp, null, Debug);
-                    break;
-                case 1:
-                    this.Plugin = new DotNetVM(Encoding.UTF8.GetString(Data), DotNetVM.Language.VisualBasic, null, Debug);
-                    break;
-                default:
-                    this.Plugin = new DotNetVM(Data);
-                    break;
-            }
+            ImportPath = Handler.ImportPath;
+            ExportPath = Handler.ExportPath;
+            bool InitializeWithScript = Handler.InitializeWithScript;
 
             //Import
             Lastest = Plugin;
@@ -235,22 +201,147 @@ namespace SacanaWrapper
 
         }
 
-        private static byte[] Download(string Name) => HttpClient.GetByteArrayAsync(RemoteRepository + Name).GetAwaiter().GetResult();
-        
+        private async Task<PluginHandler> GetPluginHandler(PluginInfo Plugin)
+        {
+            bool Online = false;
+            var VerName = Plugin.Name + " Version";
+            var ModeName = Plugin.Name + " Mode";
+            if (Cache.ContainsKey(VerName)) {
+                Version LastVersion = new Version(Plugin.LastVer);
+                Version LocalVersion = new Version(Encoding.UTF8.GetString(Cache[VerName]));
+                if (LastVersion > LocalVersion)
+                    Online = true;
+            }
 
-        public static PluginInfo[] GetPlugins() {
-            var Data = Download(MapperFileName);
+            byte[] INI = await Download(Plugin.File, Online);
+            var Handler = new PluginHandler();
+            Handler.ExportPath = Ini.GetConfig("Plugin", "Export;Exp;export;exp", INI, true);
+            Handler.ImportPath = Ini.GetConfig("Plugin", "Import;Imp;import;imp", INI, true);
+            string Source = Ini.GetConfig("Plugin", "File;file;Archive;archive;Arc;arc", INI, false);
+
+            if (string.IsNullOrWhiteSpace(Source))
+                Source = Path.GetFileNameWithoutExtension(Plugin.File);
+
+            int Mode = 0;
+            byte[] Data;
+            if (!Online && Cache.ContainsKey(ModeName))
+            {
+                Mode = int.Parse(Encoding.UTF8.GetString(Cache[ModeName]));
+                switch (Mode) {
+                    case 0:
+                        Data = await Download(Source + ".cs", Online);
+                        break;
+                    case 1:
+                        Data = await Download(Source + ".vb", Online);
+                        break;
+                    case 2:
+                        Data = await Download(Source + ".dll", Online);
+                        break;
+                    default:
+                        throw new Exception("Invalid Mode");
+                }
+            }
+            else
+            {
+                try
+                {
+                    Data = await Download(Source + ".cs", Online);
+                }
+                catch
+                {
+                    try
+                    {
+                        Mode = 1;
+                        Data = await Download(Source + ".vb", Online);
+                    }
+                    catch
+                    {
+                        Mode = 2;
+                        Data = await Download(Source + ".dll", Online);
+                    }
+                }
+            }
+#if DebugPlugin
+            bool Debug = true;
+#else 
+            bool Debug = false;
+#endif
+
+            //Initialize Plugin
+            Handler.InitializeWithScript = Ini.GetConfig("Plugin", "Initialize;InputOnCreate;initialize;inputoncreate", INI, false).ToLower() == "true";
+            switch (Mode)
+            {
+                case 0:
+                    Handler.VM = new DotNetVM(Encoding.UTF8.GetString(Data), DotNetVM.Language.CSharp, null, Debug);
+                    break;
+                case 1:
+                    Handler.VM = new DotNetVM(Encoding.UTF8.GetString(Data), DotNetVM.Language.VisualBasic, null, Debug);
+                    break;
+                default:
+                    Handler.VM = new DotNetVM(Data);
+                    break;
+            }
+
+            Cache[VerName] = Encoding.UTF8.GetBytes(Plugin.LastVer);
+            Cache[ModeName] = Encoding.UTF8.GetBytes(Mode.ToString());
+
+            return Handler;
+        }
+
+        public async Task<IPluginCreator[]> GetAllPlugins() {
+            List<IPluginCreator> Creators = new List<IPluginCreator>();
+            foreach (var Plugin in await GetPlugins()) {
+                try
+                {
+                    var Handler = await GetPluginHandler(Plugin);
+                    if (!Handler.InitializeWithScript)
+                        continue;
+
+                    var PC = new PluginCreator(Handler.VM, Handler.ImportPath.Split('>')[0], Plugin.Extensions);
+                    Creators.Add(PC);
+                }
+                catch { }
+            }
+
+            return Creators.ToArray();
+        }
+
+        public static Dictionary<string, byte[]> Cache = new Dictionary<string, byte[]>();
+        private async static Task<byte[]> Download(string Name, bool TryOnline = false)
+        {
+            string CacheName = "Cache_" + Name;
+            if (Cache.ContainsKey(CacheName)){
+                if (TryOnline)
+                {
+                    try
+                    {
+                        var OnlineResult = await HttpClient.GetByteArrayAsync(RemoteRepository + Name);
+                        if (OnlineResult != null)
+                            return Cache[CacheName] = OnlineResult;
+                    }
+                    catch { }
+                }
+                return Cache[CacheName];
+            }
+
+            return Cache[CacheName] = await HttpClient.GetByteArrayAsync(RemoteRepository + Name);
+        }
+
+        public async static Task<PluginInfo[]> GetPlugins() {
+            var Data = await Download(MapperFileName);
 
             uint PluginsCount = uint.Parse(Ini.GetConfig("Repo", "Count", Data, true));
             uint Version = uint.Parse(Ini.GetConfig("Repo", "Version", Data, true));
-            if (Version > 2)
+            if (Version > 3)
             {
                 throw new Exception("The SacanaWrapper Is Outdated");
             }
 
             List<PluginInfo> Plugins = new List<PluginInfo>();
             for (int i = 0; i < PluginsCount; i++) {
-                Plugins.Add(new PluginInfo(Data, i));
+                try {
+                    Plugins.Add(new PluginInfo(Data, i));
+                } catch { }
             }
 
             return Plugins.ToArray();
@@ -286,4 +377,29 @@ namespace SacanaWrapper
         }
     }
 
+    struct PluginHandler {
+        public DotNetVM VM;
+        public string ImportPath;
+        public string ExportPath;
+        public bool InitializeWithScript;
+    }
+
+    class PluginCreator : IPluginCreator
+    {
+        DotNetVM VM;
+        string Class;
+        string _Filter;
+        public string Filter => _Filter;
+        public PluginCreator(DotNetVM VM, string Class, string Filter) {
+            this.VM = VM;
+            this.Class = Class;
+            _Filter = Filter;
+        }
+
+        public IPlugin Create(byte[] Script)
+        {
+            VM.StartInstance(Class, Script);
+            return VM.Instance.ActLike<IPlugin>();
+        }
+    }
 }

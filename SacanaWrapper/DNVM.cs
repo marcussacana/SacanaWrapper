@@ -71,7 +71,7 @@ class DotNetVM {
     }
 
     private string LastClass;
-    private object Instance = null;
+    public object Instance = null;
     private object exec(object[] Args, string Class, string Function, Assembly assembly) {
         if (LastClass != Class)
             Instance = null;
