@@ -15,6 +15,6 @@ namespace SacanaWrapper
     public interface IPlugin
     {
         string[] Import();
-        byte[] Export();
+        byte[] Export(string[] Lines);
     }
 }
