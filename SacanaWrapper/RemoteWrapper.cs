@@ -2,6 +2,7 @@
 using ImpromptuInterface;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -288,22 +289,24 @@ namespace SacanaWrapper
             return Handler;
         }
 
-        public async Task<IPluginCreator[]> GetAllPlugins() {
-            List<IPluginCreator> Creators = new List<IPluginCreator>();
+        public async IAsyncEnumerable<IPluginCreator> GetAllPlugins(Action<string> ProgressChanged = null) {
             foreach (var Plugin in await GetPlugins()) {
+                IPluginCreator Creator;
+
                 try
                 {
+                    ProgressChanged?.Invoke(Plugin.Name);
+
                     var Handler = await GetPluginHandler(Plugin);
                     if (!Handler.InitializeWithScript)
                         continue;
 
-                    var PC = new PluginCreator(Handler.VM, Handler.ImportPath.Split('>')[0], Plugin.Extensions);
-                    Creators.Add(PC);
+                  Creator = new PluginCreator(Handler.VM, Handler.ImportPath.Split('>')[0], Plugin.Extensions);
                 }
-                catch { }
-            }
+                catch { continue; }
 
-            return Creators.ToArray();
+                yield return Creator;
+            }
         }
 
         public static Dictionary<string, byte[]> Cache = new Dictionary<string, byte[]>();
