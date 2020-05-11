@@ -301,14 +301,14 @@ namespace SacanaWrapper
                     if (!Handler.InitializeWithScript)
                         continue;
 
-                  Creator = new PluginCreator(Handler.VM, Handler.ImportPath.Split('>')[0], Plugin.Extensions);
+                  Creator = new PluginCreator(Handler.VM, Handler.ImportPath.Split('>')[0], Plugin.Name, Plugin.Extensions);
                 }
                 catch { continue; }
 
                 yield return Creator;
             }
         }
-
+        public static bool CacheChanged = false;
         public static Dictionary<string, byte[]> Cache = new Dictionary<string, byte[]>();
         private async static Task<byte[]> Download(string Name, bool TryOnline = false)
         {
@@ -319,14 +319,19 @@ namespace SacanaWrapper
                     try
                     {
                         var OnlineResult = await HttpClient.GetByteArrayAsync(RemoteRepository + Name);
-                        if (OnlineResult != null)
+                        if (OnlineResult != null) {
+                            if (Cache.ContainsKey(CacheName) && Cache[CacheName].Length == OnlineResult.Length)
+                                return OnlineResult;
+                            CacheChanged = true;
                             return Cache[CacheName] = OnlineResult;
+                        }
                     }
                     catch { }
                 }
                 return Cache[CacheName];
             }
 
+            CacheChanged = true;
             return Cache[CacheName] = await HttpClient.GetByteArrayAsync(RemoteRepository + Name);
         }
 
@@ -391,11 +396,14 @@ namespace SacanaWrapper
     {
         DotNetVM VM;
         string Class;
+        string _Name;
         string _Filter;
         public string Filter => _Filter;
-        public PluginCreator(DotNetVM VM, string Class, string Filter) {
+        public string Name => _Name;
+        public PluginCreator(DotNetVM VM, string Class, string Name, string Filter) {
             this.VM = VM;
             this.Class = Class;
+            _Name = Name;
             _Filter = Filter;
         }
 

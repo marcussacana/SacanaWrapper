@@ -8,6 +8,7 @@ namespace SacanaWrapper
 {
     public interface IPluginCreator
     {
+        string Name { get; }
         string Filter { get; }
         IPlugin Create(byte[] Script);
     }
