@@ -109,6 +109,9 @@ public class Filter {
                 case '"':
                     Append = "\\\"";
                     break;
+				case '%':
+					Append = "\\%";
+					break;
                 default:
                     throw new Exception("\\" + c + " Isn't a valid string escape.");
                     break; 
@@ -144,7 +147,9 @@ public class Filter {
                 //    Result += "\\'";
                 else if (c == '"')
                     Result += "\\\"";
-                else
+                else if (c == '%')
+					Result += "\\%";
+				else
                     Result += c;
             }
             String = Result;
@@ -176,6 +181,9 @@ public class Filter {
                         case '"':
                             Result += '"';
                             break;
+						case '%':
+							Result += '%';
+							break;
                         default:
                             throw new Exception("\\" + c + " Isn't a valid string escape.");
                     }
