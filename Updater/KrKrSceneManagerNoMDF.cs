@@ -1,4 +1,5 @@
-﻿#IMPORT %CD%\Plugins\KrKrSceneManager.dll
+﻿#IMPORT netstandard.dll
+#IMPORT %CD%\Plugins\KrKrSceneManager.dll
 using KrKrSceneManager;
 
 public class KrKrSceneManagerNoMDF {
