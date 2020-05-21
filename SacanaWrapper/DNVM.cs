@@ -12,7 +12,7 @@ class DotNetVM {
     }
 
     internal DotNetVM(byte[] Data) {
-        Assembly = Assembly.Load(Data);
+        Assembly = AppDomain.CurrentDomain.Load(Data);
     }
     internal DotNetVM(string Content, Language Lang = Language.CSharp, string FileName = null, bool Debug = false) {
         if (System.IO.File.Exists(Content)) {

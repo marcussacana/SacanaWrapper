@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -20,9 +21,11 @@ namespace SacanaWrapper
         string ExportPath = string.Empty;
         string StrIP = string.Empty;
         string StrEP = string.Empty;
-        private static PluginInfo Lastest;
-        private static string LastExt = string.Empty;
+        private PluginInfo Lastest;
+        private string LastExt = string.Empty;
         DotNetVM Plugin;
+
+        public static bool ForceBinary;
 
         public async static Task<string> EnumSupportedExtensions() {
             string Result = string.Empty;
@@ -230,13 +233,13 @@ namespace SacanaWrapper
                 Mode = int.Parse(Encoding.UTF8.GetString(Cache[ModeName]));
                 switch (Mode) {
                     case 0:
-                        Data = await Download(Source + ".cs", Online);
+                        Data = await Download(Source + ".cs", Online, true);
                         break;
                     case 1:
-                        Data = await Download(Source + ".vb", Online);
+                        Data = await Download(Source + ".vb", Online, true);
                         break;
                     case 2:
-                        Data = await Download(Source + ".dll", Online);
+                        Data = await Download(Source + ".dll", Online, true);
                         break;
                     default:
                         throw new Exception("Invalid Mode");
@@ -244,23 +247,28 @@ namespace SacanaWrapper
             }
             else
             {
-                try
+                if (ForceBinary)
                 {
-                    Data = await Download(Source + ".cs", Online);
+                    Mode = 2;
+                    Data = await TryDownload(Source + ".dll", Online);
                 }
-                catch
+                else
                 {
-                    try
+                    Mode = 0;
+                    Data = await TryDownload(Source + ".cs", Online);
+                    if (Data == null)
                     {
                         Mode = 1;
-                        Data = await Download(Source + ".vb", Online);
-                    }
-                    catch
-                    {
-                        Mode = 2;
-                        Data = await Download(Source + ".dll", Online);
+                        Data = await TryDownload(Source + ".vb", Online);
+                        if (Data == null)
+                        {
+                            Mode = 2;
+                            Data = await Download(Source + ".dll", Online);
+                        }
                     }
                 }
+                if (Data == null || Data.Length == 0)
+                    throw new FileLoadException("Unable to Download the Plugin: " + Source);
             }
 #if DebugPlugin
             bool Debug = true;
@@ -301,7 +309,7 @@ namespace SacanaWrapper
                     if (!Handler.InitializeWithScript)
                         continue;
 
-                  Creator = new PluginCreator(Handler.VM, Handler.ImportPath.Split('>')[0], Plugin.Name, Plugin.Extensions);
+                  Creator = new PluginCreator(Plugin, Handler);
                 }
                 catch { continue; }
 
@@ -310,8 +318,20 @@ namespace SacanaWrapper
         }
         public static bool CacheChanged = false;
         public static Dictionary<string, byte[]> Cache = new Dictionary<string, byte[]>();
-        private async static Task<byte[]> Download(string Name, bool TryOnline = false)
+        private async static Task<byte[]> TryDownload(string Name, bool TryOnline = false, bool ForceOffline = false) {
+            try
+            {
+                return await Download(Name, TryOnline, ForceOffline);
+            }
+            catch {
+                return null;
+            }
+        }
+        private async static Task<byte[]> Download(string Name, bool TryOnline = false, bool ForceOffline = false)
         {
+            if (ForceOffline)
+                TryOnline = false;
+
             string CacheName = "Cache_" + Name;
             if (Cache.ContainsKey(CacheName)){
                 if (TryOnline)
@@ -330,6 +350,9 @@ namespace SacanaWrapper
                 }
                 return Cache[CacheName];
             }
+
+            if (ForceOffline)
+                throw new FileNotFoundException("Can't Download the Plugin: " + Name);
 
             CacheChanged = true;
             return Cache[CacheName] = await HttpClient.GetByteArrayAsync(RemoteRepository + Name);
@@ -389,6 +412,7 @@ namespace SacanaWrapper
         public DotNetVM VM;
         public string ImportPath;
         public string ExportPath;
+        public string Support;
         public bool InitializeWithScript;
     }
 
@@ -396,20 +420,27 @@ namespace SacanaWrapper
     {
         DotNetVM VM;
         string Class;
-        string _Name;
-        string _Filter;
-        public string Filter => _Filter;
-        public string Name => _Name;
-        public PluginCreator(DotNetVM VM, string Class, string Name, string Filter) {
-            this.VM = VM;
-            this.Class = Class;
-            _Name = Name;
-            _Filter = Filter;
+        public string Filter { get; private set; }
+        public string Name { get; private set; }
+        public string Type { get; private set; }
+        public bool InitializeWithScript { get; private set; }
+        public PluginCreator(PluginInfo Info, PluginHandler Handler) {
+            VM = Handler.VM;
+            Name = Info.Name;
+            Type = Info.Type;
+            Filter = Info.Extensions;
+            Class = Handler.ImportPath.Split('>').First();
+            InitializeWithScript = Handler.InitializeWithScript;
         }
 
         public IPlugin Create(byte[] Script)
         {
             VM.StartInstance(Class, Script);
+            return VM.Instance.ActLike<IPlugin>();
+        }
+
+        public IPlugin Create() {
+            VM.StartInstance(Class);
             return VM.Instance.ActLike<IPlugin>();
         }
     }
