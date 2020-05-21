@@ -6,7 +6,7 @@ public class KrKrSceneManagerNoMDF {
     PSBAnalyzer Editor;
     public KrKrSceneManagerNoMDF(byte[] Script) {
         Editor = new PSBAnalyzer(Script);
-        Editor.CompressPackget = false;
+        Editor.CompressPackage = false;
     }
 
     public string[] Import() {
