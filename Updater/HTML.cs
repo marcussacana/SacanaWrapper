@@ -27,13 +27,15 @@ namespace HTML
             }
             this.Script = Eco.GetString(Script).Replace("\r\n", "\n");
         }
-
+		
+		private readonly string[] SkipTags = new string[] { "style" };
         private readonly string[] AllowTags = new string[] { "em", "b", "i", "br" };
         public string[] Import()
         {
             Infos = new List<TextInfo>();
             int Status = 0;
             bool DenyTag = false;
+			bool InSkip = false;
             TextInfo LastTagInfo = new TextInfo();
             TextInfo TagInfo = new TextInfo();
             TextInfo Current = new TextInfo();
@@ -55,6 +57,18 @@ namespace HTML
                         {
                             TagInfo.End = i;
                             string Tag = GetText(TagInfo).ToLower().Trim(' ', '\n', '\r', '<', '>', '\\', '/');							
+							bool SkipTag = (from x in SkipTags where Tag.StartsWith(x) select x).Any();
+							if (SkipTag) {
+								InSkip = !InSkip;
+								if (!InSkip){
+									Current = new TextInfo();
+									Current.Begin = i + 1;
+									if (Infos.Count > 0)
+										Infos.Remove(Infos.Last());
+									Status = 2;
+									break;
+								}
+							}
 							bool AllowedTag = (from x in AllowTags where Tag == x select x).Any();
 							bool IncludeTag = false;
 							if (DenyTag && AllowedTag){
@@ -83,6 +97,8 @@ namespace HTML
 							
                             continue;
                         }
+						if (InSkip)
+							continue;
                         if (char.IsWhiteSpace(c) && i == Current.Begin)
                             Current.Begin = i;
                         break;

@@ -34,7 +34,7 @@ public class EPUB {
     
     public string[] Import() {
         Pages = new List<byte[]>();
-        Entries = (from x in Zip.Entries where x.FullName.ToLower().Replace("\\", "/").StartsWith("oebps/text/") select x).ToArray();
+        Entries = (from x in Zip.Entries where x.FullName.ToLower().EndsWith(".xhtml") select x).ToArray();
         foreach (var Entry in Entries){
             using (Stream EntryData = Entry.Open())
             using (MemoryStream Buffer = new MemoryStream()){
@@ -49,6 +49,11 @@ public class EPUB {
 			try {
 				Readers[i] = new Plain(Pages.ElementAt(i));
 				var Strs = Readers[i].Import();
+				if (Strs.Length == 0 || (Strs.Length == 1 && Strs.First() == "")){
+					Readers[i] = null;
+					continue;
+				}
+				
 				CountMap[i] = Strs.Length;
 				Lines.AddRange(Strs);
 			} catch {
