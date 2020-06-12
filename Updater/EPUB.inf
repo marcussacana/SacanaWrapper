@@ -1,0 +1,6 @@
+[Plugin]
+Import=EPUB>Import
+Export=EPUB>Export
+Extensions=EPUB
+Initialize=true
+
