@@ -37,11 +37,10 @@ namespace TXTEven {
 					foreach (string Line in line.Split('$'))
 						Lines.Add(Line);
 				} else if (line.StartsWith("mg ") && MSGOnly != false){
-					string Str = string.Empty;
-					while (Script[++i] != "@@"){
-						Str += Script[i] + "\n";
+					while (Script[++i] != "@@") {
+						if (!Script[i].StartsWith("@"))
+							Lines.Add(Script[i]);
 					}
-					Lines.Add(Str.Substring(0, Str.Length-1));
 				}
 			}
             return Lines.ToArray();
@@ -61,8 +60,10 @@ namespace TXTEven {
 				if (line.StartsWith("s ") && MSGOnly != true){					
 					string Prefix = "s " + line.Split(' ')[1] + " ";
 					line = line.Substring(Prefix.Length);
-					if (string.IsNullOrEmpty(line))
+					if (string.IsNullOrEmpty(line)){
+						SB.AppendLine(Prefix);
 						continue;
+					}
 					
 					int Count = line.Split('$').Length;
 					line = Prefix;
@@ -71,10 +72,13 @@ namespace TXTEven {
 					SB.AppendLine(line.Substring(0, line.Length-1));
 				} else if (line.StartsWith("mg ") && MSGOnly != false){
 					SB.AppendLine(line);
-					SB.AppendLine(Text[x++].Replace("\n", "\r\n"));
+					while (Script[++i] != "@@"){
+						if (Script[i].StartsWith("@"))
+							SB.AppendLine(Script[i]);
+						else 
+							SB.AppendLine(Text[x++].Replace("\n", "\r\n"));
+					}
 					SB.AppendLine("@@");
-					while (Script[++i] != "@@")
-						continue;
 				} else {
 					SB.AppendLine(line);					
 				}
