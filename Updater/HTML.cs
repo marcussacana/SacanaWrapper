@@ -105,6 +105,11 @@ namespace HTML
                     case 2:
                         if (c == '<')
                         {
+							var Tag = GetTagAt(Script, i).Split(' ')[0].ToLower().Trim(' ', '\n', '\r', '<', '>', '\\', '/');
+							bool AllowedTag = (from x in AllowTags where Tag == x select x).Any();
+							if (AllowedTag)
+								break;
+							
                             Current.End = i;
                             if (Current.Length > 2)
                             {
@@ -125,6 +130,17 @@ namespace HTML
             }
             return (from x in Infos select GetText(x)).ToArray();
         }
+		
+		private string GetTagAt(string Str, int Index){
+			if (Str[Index] == '<')
+				Index++;
+			int Begin = Index;
+			while (Str[Index] != '>')
+				Index++;
+			
+			int Len = Index - Begin;
+			return Str.Substring(Begin, Len);
+		}
 
         public byte[] Export(string[] Text)
         {
