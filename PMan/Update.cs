@@ -17,14 +17,17 @@ namespace PMan {
             uint PluginsCount = uint.Parse(Ini.GetConfig("Repo", "Count", PluginList, true));
             uint Version = uint.Parse(Ini.GetConfig("Repo", "Version", PluginList, true));
             var WrapperVer = new Version(Ini.GetConfig("Repo", "WrapperVer", PluginList, true));
-            
+            var CurrWrapperVer = new Version(FileVersionInfo.GetVersionInfo(WrapperPath).FileVersion);
+
             if (Version > 3) {
                 throw new Exception("The Plugin Manager Is Outdated");
             }
 
-            if (WrapperVer > new Version(FileVersionInfo.GetVersionInfo(WrapperPath).FileVersion))
+            if (WrapperVer > CurrWrapperVer)
             {
-                throw new Exception("The SacanaWrapper Is Outdated");
+                if (CurrWrapperVer != new Version(1, 0, 0, 0))
+                    throw new Exception("The SacanaWrapper Is Outdated");
+                MessageBox.Show(null, "You're Running a Debug Version of the SacanaWrapper", "Plugin Manager", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             List<string> Names = new List<string>();

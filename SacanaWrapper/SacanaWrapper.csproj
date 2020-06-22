@@ -17,4 +17,7 @@
     <PackageReference Include="System.CodeDom" Version="4.7.0" />
     <PackageReference Include="System.Dynamic.Runtime" Version="4.3.0" />
   </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy &quot;%25USERPROFILE%25\.nuget\packages\system.codedom\4.7.0\lib\netstandard2.0\System.CodeDom.dll&quot; &quot;$(TargetDir)&quot;" />
+  </Target>
  </Project>

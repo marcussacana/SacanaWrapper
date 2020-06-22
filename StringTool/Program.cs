@@ -9,6 +9,8 @@ namespace StringTool
 {
     class Program
     {
+        static Dictionary<char, char> EncodeMapping;
+        static Dictionary<char, char> DecodeMapping;
         static void Main(string[] args)
         {
             Console.Title = "Marcussacana String Tool For Newbie/Lazy - The First and Last.";
@@ -17,6 +19,7 @@ namespace StringTool
                 Console.WriteLine("Usage:");
                 Console.WriteLine("-dump \"C:\\GameScript.bin\" \"C:\\ScriptStr.txt\"");
                 Console.WriteLine("-insert \"C:\\GameScript.bin\" \"C:\\ScriptStr.txt\"  \"C:\\NewScript.bin\"");
+                Console.WriteLine("-remap \"C:\\Chars.lst\" -dump/-insert ...");
                 Console.WriteLine("-support");
                 Console.WriteLine("Or just drag&drop");
                 Console.ReadKey();
@@ -52,7 +55,7 @@ namespace StringTool
 
         private static void Process(string[] args)
         {
-            string Input = string.Empty, Input2 = string.Empty, Output = string.Empty;
+            string Input = string.Empty, Input2 = string.Empty, Output = string.Empty, Remap = string.Empty;
             try
             {
                 int ParInd = 0;
@@ -60,13 +63,34 @@ namespace StringTool
                 bool DumpMode = true;
                 bool CountMode = false;
                 bool SupportMode = false;
-                CheckArgs(args, ref ParInd, ref FileFound, ref Input, ref Input2, ref Output, ref DumpMode, ref CountMode, ref SupportMode);
+                CheckArgs(args, ref ParInd, ref FileFound, ref Input, ref Input2, ref Output, ref Remap, ref DumpMode, ref CountMode, ref SupportMode);
 
                 if (SupportMode)
                 {
                     Console.WriteLine("Supported Script Extensions:");
                     Console.WriteLine(Wrapper.EnumSupportedExtensions());
                     return;
+                }
+
+                EncodeMapping = new Dictionary<char, char>();
+                DecodeMapping = new Dictionary<char, char>();
+
+                if (Remap != string.Empty && File.Exists(Remap))
+                {
+                    foreach (var Line in File.ReadAllLines(Remap))
+                    {
+                        var Pair = Line.Trim();
+                        if (Pair.Length != 3)
+                            continue;
+                        if (Pair[1] != '=')
+                            continue;
+
+                        char Real = Pair.First();
+                        char Fake = Pair.Last();
+
+                        EncodeMapping[Fake] = Real;
+                        DecodeMapping[Real] = Fake;
+                    }
                 }
 
 
@@ -150,7 +174,7 @@ namespace StringTool
                     else if (c == '\r')
                         Result += "\\r";
                     else
-                        Result += c;
+                        Result += EncodeMapping.ContainsKey(c) ? EncodeMapping[c] : c;
                 }
                 String = Result;
             }
@@ -187,14 +211,15 @@ namespace StringTool
                         Special = false;
                     }
                     else
-                        Result += c;
+                        Result += DecodeMapping.ContainsKey(c) ? DecodeMapping[c] : c;
                 }
                 String = Result;
             }
         }
 
-        private static void CheckArgs(string[] args, ref int ParInd, ref bool FileFound, ref string Input, ref string Input2, ref string Output, ref bool DumpMode, ref bool CountMode, ref bool SupportMode)
+        private static void CheckArgs(string[] args, ref int ParInd, ref bool FileFound, ref string Input, ref string Input2, ref string Output, ref string Remap, ref bool DumpMode, ref bool CountMode, ref bool SupportMode)
         {
+            bool InRemap = false;
             CountMode = false;
             foreach (string Arg in args)
             {
@@ -202,6 +227,9 @@ namespace StringTool
                 {
                     switch (Arg.ToLower().Trim(' ', '\\', '/', '-'))
                     {
+                        case "remap":
+                            InRemap = true;
+                            break;
                         case "dump":
                             DumpMode = true;
                             break;
@@ -220,10 +248,16 @@ namespace StringTool
                     continue;
                 }
 
+                if (InRemap)
+                {
+                    InRemap = false;
+                    Remap = Arg;
+                    continue;
+                }
 
                 string ArgFN = Arg, ArgFNWE = ArgFN, ArgDir = Arg;
                 if (ArgFN.Contains(":"))
-                    ArgFN = Path.GetFileName(ArgFN);
+                    ArgFN = ArgFNWE = Path.GetFileName(ArgFN);
                 if (ArgFNWE.Contains("."))
                 {
                     ArgFNWE = Path.GetFileNameWithoutExtension("C:\\" + ArgFN);
@@ -253,7 +287,7 @@ namespace StringTool
 
                         if (Files.Length <= 1 && ArgFNWE.ToLower().EndsWith("-dump"))
                         {
-                            ArgFNWE = ArgFNWE.Substring(0, ArgFNWE.Length - "-dump".Length); 
+                            ArgFNWE = ArgFNWE.Substring(0, ArgFNWE.Length - "-dump".Length);
                             Files = Directory.GetFiles(ArgDir, ArgFNWE + ".*");
                         }
 
