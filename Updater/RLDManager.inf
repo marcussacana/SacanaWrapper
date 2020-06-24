@@ -1,5 +1,0 @@
-[Plugin]
-Import=RLDManager.RLD>Import
-Export=RLDManager.RLD>Export
-Initialize=true
-Extensions=RLD
