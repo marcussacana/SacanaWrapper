@@ -35,7 +35,7 @@ namespace TXT {
 					InDiag = true;
 					
 					if (line.StartsWith(HackyDialogPrefix))
-						line = line.Substring(HackyDialogPrefix.Length);
+						line = line.Replace(HackyDialogPrefix, "");
 					
 					Str += line + "\\n";
 					continue;
@@ -55,25 +55,13 @@ namespace TXT {
         }
 		
 		public bool IsDialog(string Line){
-			if (Line.Contains("\t") || string.IsNullOrEmpty(Line))
+			if (Line.StartsWith("<"))
+				return true;
+			
+			if (Line.StartsWith("＠"))
 				return false;
 			
-			var NearDot = CharsAfter(Line, '.');
-			if (NearDot.Where(x => x == ' ').Count() != NearDot.Length)
-				return false;
-			
-			if (Line.Contains("="))
-				return false;
-			
-			var Commands = new string[] { "//", "＠", "screenfilterremove", "global(", "if ",
-										  "gosub", "goto", "label", "return", "SceneTitle",
-										  "next", "sceneend", "keywait", "layerrelease", "reset",
-										  "wait", "}" };
-			foreach (var Command in Commands)
-				if (Line.StartsWith(Command))
-					return false;
-			
-			return true;
+			return GetFirstByte(Line) >= 0x80;
 		}
 		
 		public bool IsName(string Line){
@@ -89,7 +77,7 @@ namespace TXT {
 			string Sufix = string.Empty;
 			if (SufixBegin >= 0)
 				Sufix = Line.Substring(SufixBegin);
-			return "＠" + Name + Sufix;
+			return "＠" + Name.Replace(",", "，") + Sufix;
 		}
 	
 		public char[] CharsAfter(string Line, char Char){
@@ -135,12 +123,31 @@ namespace TXT {
 			return Eco.GetBytes(SB.ToString());
         }
 		
-		public string ParseDialog(string Dialog){
-			Dialog = Dialog.Replace("\\n", "\r\n");
+		public byte GetFirstByte(string Line){
+			if (Line.Length == 0)
+				return 0;
 			
-			var Begin = Eco.GetBytes(Dialog);
-			if (Begin.Length > 1 && Begin.First() < 0x80)
-				Dialog = HackyDialogPrefix + Dialog;
+			var Begin = Eco.GetBytes(Line);
+			return Begin.First();
+		}
+		
+		public string ParseDialog(string Dialog){
+			Dialog = Dialog.Replace("\\n", "\n");
+			string[] Lines = Dialog.Split('\n');
+			
+			//Hacky Fix to begin lines with ASCII characters
+			//Usually this is only needed in the first line of every dialogue
+			//But if in the others line, if the line starts with " for example
+			//we must put the HackyDialogPrefix as well, since isn't only the "
+			//that have this problem, and I'm with lazy to list all characters
+			//I just applied in all lines and work like a charm :)
+			for (int i = 0; i < Lines.Length; i++){
+				var FirstByte = GetFirstByte(Lines[i]);
+				if (FirstByte < 0x80 && FirstByte != 0x3C && FirstByte != 0)
+					Lines[i] = HackyDialogPrefix + Lines[i];
+			}
+			
+			Dialog = string.Join("\r\n", Lines);
 			
 			return Dialog;
 		}
