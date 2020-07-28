@@ -13,15 +13,6 @@ namespace TXT {
 		const string HackyDialogPrefix = "<font></font>";
 		
         public PIXSTUDIO(byte[] Script) {
-			if (Script[0] == 0xFF && Script[1] == 0xFE)
-			{
-				BOOM = true;
-				byte[] narr = new byte[Script.Length-2];
-				for (int i = 2; i < Script.Length; i++)
-					narr[i-2] = Script[i];
-				this.Script = Eco.GetString(narr).Replace("\r\n", "\n").Split('\n');
-				return;
-			}
             this.Script = Eco.GetString(Script).Replace("\r\n", "\n").Split('\n');
         }
 
@@ -61,7 +52,17 @@ namespace TXT {
 			if (Line.StartsWith("＠"))
 				return false;
 			
-			return GetFirstByte(Line) >= 0x80;
+			return IsSJIS(GetFirstByte(Line));
+		}
+	
+		public bool IsSJIS(byte Byte){
+			if (Byte < 0x80)
+				return false;
+			if (Byte < 0xA0)
+				return true;
+			if (Byte < 0xE0)
+				return false;
+			return true;
 		}
 		
 		public bool IsName(string Line){
@@ -143,7 +144,7 @@ namespace TXT {
 			//I just applied in all lines and work like a charm :)
 			for (int i = 0; i < Lines.Length; i++){
 				var FirstByte = GetFirstByte(Lines[i]);
-				if (FirstByte < 0x80 && FirstByte != 0x3C && FirstByte != 0)
+				if (!IsSJIS(FirstByte) && FirstByte != 0x3C && FirstByte != 0)
 					Lines[i] = HackyDialogPrefix + Lines[i];
 			}
 			
