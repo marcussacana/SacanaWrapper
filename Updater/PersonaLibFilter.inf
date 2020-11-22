@@ -1,0 +1,5 @@
+[Plugin]
+Import=PersonaLib.TXT>Import
+Export=PersonaLib.TXT>Export
+Extensions=TXT
+Initialize=true
