@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -13,6 +14,9 @@ namespace PMan {
         static void Main(string[] Args) {
             if (!Directory.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins"))
                 Directory.CreateDirectory(AppDomain.CurrentDomain.BaseDirectory + "Plugins");
+
+            ServicePointManager.SecurityProtocol = (SecurityProtocolType)0x00000FF0;
+            ServicePointManager.ServerCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
 
             if (Args?.Length > 0 && Args[0].Trim(' ', '-', '/').ToLower() == "update") {
                 AutoUpdate();
