@@ -1,4 +1,4 @@
-﻿#IMPORT System.Linq.dll
+#IMPORT System.Linq.dll
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Text;
 namespace TXT {
     public class PlainNep {
         string[] Script;
-		Encoding Eco = Encoding.GetEncoding(932);
+		Encoding Eco = Encoding.GetEncoding(932); //Encoding.UTF8;
         public PlainNep(byte[] Script) {
             this.Script = Eco.GetString(Script).Replace("\r\n", "\n").Split('\n');
 			
@@ -32,13 +32,20 @@ namespace TXT {
 
         public byte[] Export(string[] Text) {
 			StringBuilder SB = new StringBuilder();
-			for (int i = 0; i < Script.Length; i++){
+			bool StrEnd = false;
+			for (int i = 0, x = 0; i < Script.Length; i++){
 				string line = Script[i];
 				if (line.StartsWith("――――――――――――――――――――――――――――――――――――――――")){
+					StrEnd = false;
 					SB.AppendLine(line);
+					if (line.EndsWith("EOF"))
+						break;
 					continue;
-				}
-				SB.AppendLine(Text[i]);
+				} if (StrEnd)
+					continue;
+					
+				SB.AppendLine(Text[x++].Replace("\n", "\r\n"));
+				StrEnd = true;
 			}
 			
 			return Eco.GetBytes(SB.ToString());
