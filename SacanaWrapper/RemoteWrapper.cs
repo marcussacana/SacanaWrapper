@@ -281,10 +281,10 @@ namespace SacanaWrapper
             switch (Mode)
             {
                 case 0:
-                    Handler.VM = new DotNetVM(Encoding.UTF8.GetString(Data), DotNetVM.Language.CSharp, null, Debug);
+                    Handler.VM = new DotNetVM(Encoding.UTF8.GetString(Data), null);
                     break;
                 case 1:
-                    Handler.VM = new DotNetVM(Encoding.UTF8.GetString(Data), DotNetVM.Language.VisualBasic, null, Debug);
+                    throw new NotSupportedException();
                     break;
                 default:
                     Handler.VM = new DotNetVM(Data);

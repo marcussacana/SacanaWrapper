@@ -9,12 +9,14 @@
     <UseNETCoreGenerator>true</UseNETCoreGenerator>
     <LangVersion>preview</LangVersion>
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+	<WarningsNotAsErrors>612,618,619</WarningsNotAsErrors>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="ImpromptuInterface" Version="7.0.1" />
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.1.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="3.8.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="System.CodeDom" Version="4.7.0" />
     <PackageReference Include="System.Dynamic.Runtime" Version="4.3.0" />
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

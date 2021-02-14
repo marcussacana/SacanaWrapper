@@ -1,7 +1,9 @@
-﻿using Microsoft.CSharp;
-using Microsoft.VisualBasic;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Emit;
 using System;
-using System.CodeDom.Compiler;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -14,7 +16,7 @@ class DotNetVM {
     internal DotNetVM(byte[] Data) {
         Assembly = AppDomain.CurrentDomain.Load(Data);
     }
-    internal DotNetVM(string Content, Language Lang = Language.CSharp, string FileName = null, bool Debug = false) {
+    internal DotNetVM(string Content, string FileName) {
         if (System.IO.File.Exists(Content)) {
             DllInitialize(Content);
             return;
@@ -28,7 +30,8 @@ class DotNetVM {
             tmp[Lines.Length] = Sr.ReadLine();
             Lines = tmp;
         }
-        Assembly = InitializeEngine(Lines, Lang, FileName, Debug);
+
+        Assembly = InitializeEngine(Lines, FileName);
     }
 
     private void DllInitialize(string Dll) {
@@ -90,7 +93,7 @@ class DotNetVM {
                     return Method?.Invoke(Instance, BindingFlags.InvokeMethod, null, Args, CultureInfo.CurrentCulture);
                 } catch (Exception ex) {
                     if (Method == Methods.Last())
-                        throw ex;
+                        throw;
                 }
             }
         }
@@ -99,47 +102,98 @@ class DotNetVM {
     }
 
     const string ImportFlag = "#import ";
-    private Assembly InitializeEngine(string[] lines, Language Lang, string FileName = null, bool Debug = false) {
-        CodeDomProvider cpd = (Lang == Language.CSharp ? new CSharpCodeProvider() : (CodeDomProvider)new VBCodeProvider());
+    private Assembly InitializeEngine(string[] lines, string FileName)
+    {
+        var References = new List<MetadataReference>();
 
-        var cp = new CompilerParameters();
-        string sourceCode = string.Empty;
+        var CreateReferenceFromAssembly = typeof(MetadataReference).GetMethods(BindingFlags.Public | BindingFlags.Static).Where(x => x.GetParameters().Length == 1 && x.Name == "CreateFromAssembly").Single();
+
+        var SystemAsm = (from x in AppDomain.CurrentDomain.GetAssemblies() where x.FullName.StartsWith("System,") select x);
+        var MscorlibAsm = (from x in AppDomain.CurrentDomain.GetAssemblies() where x.FullName.StartsWith("mscorlib,") select x);
+
+        References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { SystemAsm.Single() }));
+        References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { MscorlibAsm.Single() }));
+
+        string SourceCode = string.Empty;
         int Imports = 0;
-        foreach (string line in lines) {
-            if (line.ToLower().StartsWith(ImportFlag)) {
+        bool SystemAdded = false;
+        foreach (string line in lines)
+        {
+            if (line.ToLower().StartsWith(ImportFlag))
+            {
                 string ReferenceName = line.Substring(ImportFlag.Length, line.Length - ImportFlag.Length).Trim();
                 if (ReferenceName.Contains("//"))
                     ReferenceName = ReferenceName.Substring(0, ReferenceName.IndexOf("//")).Trim();
                 ReferenceName = ReferenceName.Replace("%CD%", AppDomain.CurrentDomain.BaseDirectory);
-                cp.ReferencedAssemblies.Add(ReferenceName);
+
+
+
+                if (System.IO.File.Exists(ReferenceName))
+                    References.Add(MetadataReference.CreateFromFile(ReferenceName));
+                else
+                {
+                    try
+                    {
+                        References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { Assembly.Load(ReferenceName) }));
+                    }
+                    catch
+                    {
+                        try
+                        {
+                            ReferenceName = System.IO.Path.GetFileNameWithoutExtension(ReferenceName);
+                            References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { Assembly.Load(ReferenceName) }));
+                        }
+                        catch
+                        {
+                            var Assemblies = (from x in AppDomain.CurrentDomain.GetAssemblies() where x.FullName.StartsWith(ReferenceName+",") select x);
+
+                            foreach (var Assemby in Assemblies)
+                                References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { Assembly }));
+
+                        }
+                    }
+                }
+
+
                 Imports++;
                 continue;
             }
-            sourceCode += line + "\r\n";
+            if (line.StartsWith("using ") || line.StartsWith("public class ") || line.StartsWith("namespace  ") || line.StartsWith("class ")) {
+                if (!SystemAdded) {
+                    SystemAdded = true;
+                    Imports++;
+                    SourceCode += "using System;\r\n";
+                }
+            }
+            SourceCode += line + "\r\n";
         }
-        cp.GenerateExecutable = false;
-        if (Debug) {
-            cp.IncludeDebugInformation = true;
-            cp.TempFiles = new TempFileCollection(Environment.GetEnvironmentVariable("TEMP"), true);
-            cp.TempFiles.KeepFiles = true;
-        }
-        if (FileName != null)
-            cp.OutputAssembly = FileName;
-        cp.ReferencedAssemblies.Add(Assembly.GetExecutingAssembly().Location);
-        CompilerResults cr = cpd.CompileAssemblyFromSource(cp, sourceCode);
 
-        if (cr.Errors.HasErrors) {
-            string Log = "Interpreter Error(s) List:";
-            foreach (CompilerError Error in cr.Errors) {
-                string MSG = string.Format("[{0}]: {1}", Error.Line - Imports, Error.ErrorText);
-                Log += "\n" + MSG;
+        var SyntaxTree = CSharpSyntaxTree.ParseText(SourceCode);
+
+        var Compilation = CSharpCompilation.Create($"{System.IO.Path.GetFileNameWithoutExtension(FileName)}.dll", new[] { SyntaxTree }, References, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        
+
+        using (var Stream = new System.IO.MemoryStream())
+        {
+            EmitResult result = Compilation.Emit(Stream);
+
+            if (!result.Success)
+            {
+                var failures = result.Diagnostics.Where(diagnostic => diagnostic.IsWarningAsError || diagnostic.Severity == DiagnosticSeverity.Error);
+
+                List<Exception> Errors = new List<Exception>();
+                foreach (Diagnostic diagnostic in failures.OrderBy(o => o.Location.GetLineSpan().StartLinePosition.Line))
+                    Errors.Add(new Exception($"({diagnostic.Location.GetLineSpan().StartLinePosition.Line+Imports}) {diagnostic.Id}: {diagnostic.GetMessage()}"));
+
+                throw new AggregateException(Errors.ToArray());
             }
 
-            throw new Exception(Log);
+            if (FileName != null)
+                System.IO.File.WriteAllBytes(FileName, Stream.ToArray());
+
+            return Assembly.Load(Stream.ToArray());
         }
 
-        DLL = cr.PathToAssembly;
-        return cr.CompiledAssembly;
     }
 
     public static string AssemblyDirectory {
