@@ -19,8 +19,12 @@ namespace KrKrFilter {
 		//Encoding.GetEncoding(932); //SJIS
 		//Encoding.Unicode; //UTF16
 		//Encoding.Default; //Operating System Default Encoding
-        private Encoding Eco = Encoding.UTF8;
-        private Encoding Eco2 = Encoding.UTF8;
+        private Encoding Eco = Encoding.Unicode;
+        private Encoding Eco2 = Encoding.Unicode;
+		
+		//Some few games break the line in the source script to break in
+		//the game as well, if this is the case keep this enabled.
+		private bool AutoMergeLines = true;
         
 		private string[] Lines = new string[0];
         private Dictionary<uint, string> Prefix = new Dictionary<uint, string>();
@@ -55,20 +59,32 @@ namespace KrKrFilter {
         public string[] Import() {
             uint ID = 0;
             List<string> Dialogues = new List<string>();
+			bool Continue = false;
             bool InScript = false;
             foreach (string Line in Lines) {
                 if (Line.Trim() == "[iscript]" || Line.Trim() == "@iscript")
                     InScript = true;
                 if (Line.Trim() == "[endscript]" || Line.Trim() == "@endscript")
                     InScript = false;
-                if (InScript)
+                if (InScript){
+					Continue = false;
                     continue;
+				}
 
                 if (IsString(Line)) {
-                    Dialogues.Add(LineWork(true, ID++, Line).Replace("[r]", "\n"));
-                }
+					var CurrentLine = LineWork(true, ID++, Line).Replace("[r]", "\n");
+					if (Continue){
+						Dialogues[Dialogues.Count - 1] += "\n" + CurrentLine;
+					} else {
+						Dialogues.Add(CurrentLine);
+						Continue = AutoMergeLines;
+					}
+					
+                } else Continue = false;
+					
                 if (ContainsTextOnTag(Line)) {
                     Dialogues.AddRange(GetTagText(Line));
+					Continue = false;
                 }
             }
             return Dialogues.ToArray();
@@ -76,6 +92,7 @@ namespace KrKrFilter {
 
         public byte[] Export(string[] Content) {
             string Result = "";
+			bool Continue = false;
             bool InScript = false;
             for (uint i = 0, x = 0, z = 0; i < Lines.Length; i++) {
                 string Line = Lines[i];
@@ -83,24 +100,31 @@ namespace KrKrFilter {
                     InScript = true;
                 if (Line.Trim() == "[endscript]" || Line.Trim() == "@endscript")
                     InScript = false;
+					
+				if (InScript){					
+                    Result += Lines[i] + "\r\n";
+					Continue = false;
+                    continue;
+				}
 
-                if (IsString(Line) && !InScript) {
-                    string Input = LineWork(false, z++, Content[x++].Replace("\n", "[r]")).Replace("\n", "\r\n");
-
-                    if (ContainsTextOnTag(Lines[i])) {
-                        int Count = GetTagText(Line).Length;
-                        Input = SetTagText(Input, Content.Skip((int)x).Take(Count).ToArray());
-						x += (uint)Count;
-                    }
-
-                    Result += Input;
-                } else if (ContainsTextOnTag(Lines[i]) && !InScript) {
+				bool IsDiag = IsString(Line);
+                if (IsDiag) {
+					if (!Continue) {
+						string Input = LineWork(false, z++, Content[x++].Replace("\n", "[r]")).Replace("\n", "\r\n");
+						Result += Input;				
+						Continue = AutoMergeLines;
+					} else continue;
+                } else Continue = false;
+				
+				if (ContainsTextOnTag(Lines[i])) {
+					Continue = false;
                     int Count = GetTagText(Line).Length;
                     Result += SetTagText(Line, Content.Skip((int)x).Take(Count).ToArray());
 					x += (uint)Count;
-                } else {
+                } else if (!IsDiag) {
                     Result += Lines[i];
                 }
+				
                 Result += "\r\n";
             }
             return Eco2.GetBytes(Result);
