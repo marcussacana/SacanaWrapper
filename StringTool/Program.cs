@@ -39,9 +39,9 @@ namespace StringTool
                         case "help":
                             Console.WriteLine();
                             Console.WriteLine("Usage:");
-                            Console.WriteLine("StringTool -dump {InputScript} [OutputText]");
-                            Console.WriteLine("StringTool -insert {InputScript} [InputText] [OutputScript]");
-                            Console.WriteLine("StringTool -wordwrap {InputScript}");
+                            Console.WriteLine("StringTool -Dump {InputScript} [OutputText]");
+                            Console.WriteLine("StringTool -Insert {InputScript} [InputText] [OutputScript]");
+                            Console.WriteLine("StringTool -Wordwrap {InputScript}");
                             break;
                         case "dump":
                             if (AIsFlag)
