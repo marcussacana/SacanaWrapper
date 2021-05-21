@@ -7,13 +7,20 @@ namespace StringTool
     {
         public static Dictionary<char, char> EncodeMapping = new Dictionary<char, char>();
         public static Dictionary<char, char> DecodeMapping = new Dictionary<char, char>();
-
+        
         public static void Escape(string[] Strings) {
             Encode(Strings, true);
         }
 
         public static void Unescape(string[] Strings) {
             Encode(Strings, false);
+        }
+        public static string Escape(string Strings) {
+            return Encode(Strings, true);
+        }
+
+        public static string Unescape(string Strings) {
+            return Encode(Strings, false);
         }
 
         static void Encode(string[] Strings, bool Enable)

@@ -1,12 +1,35 @@
 ﻿using SacanaWrapper;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
+using System.Reflection;
 
 namespace StringTool
 {
     class Program
     {
+
+        internal static Font WordwrapFont => new Font(WordwrapSettings.FontName, WordwrapSettings.FontSize, WordwrapSettings.Bold ? FontStyle.Bold : FontStyle.Regular, GraphicsUnit.Pixel);
+
+        static WordwrapSettings? _WWSettings;
+        internal static WordwrapSettings WordwrapSettings
+        { 
+            get {
+                if (_WWSettings != null)
+                    return _WWSettings.Value;
+
+                if (!File.Exists("StringTool.ini")) {
+                    using (var Reader = Assembly.GetExecutingAssembly().GetManifestResourceStream("StringTool.Settings.ini"))
+                    using (var Writer = File.OpenWrite("StringTool.ini"))
+                        Reader.CopyTo(Writer);
+                }
+
+                AdvancedIni.FastOpen(out WordwrapSettings Settings, "StringTool.ini");
+                return (_WWSettings = Settings).Value;
+            }
+        }
+
         static void Main(string[] Args)
         {
             Console.Title = "StringTool - By Marcussacana";
@@ -41,7 +64,7 @@ namespace StringTool
                             Console.WriteLine("Usage:");
                             Console.WriteLine("StringTool -Dump {InputScript} [OutputText]");
                             Console.WriteLine("StringTool -Insert {InputScript} [InputText] [OutputScript]");
-                            Console.WriteLine("StringTool -Wordwrap {InputScript}");
+                            Console.WriteLine("StringTool -Wordwrap {InputScript} [InputText] [OutputScript]");
                             break;
                         case "dump":
                             if (AIsFlag)
@@ -129,22 +152,71 @@ namespace StringTool
                             if (AIsFlag)
                                 goto case "help";
 
-                            i++;
+                            if (BIsFlag)
+                            {
+                                if (File.Exists(ParamA))
+                                {
+                                    Tasks.Add(new TaskInfo(TaskType.WordWrap, ParamA));
+                                }
+                                else
+                                {
+                                    var Files = Directory.GetFiles(ParamA, "*.*", SearchOption.AllDirectories);
+                                    foreach (var File in Files)
+                                    {
+                                        if (File.EndsWith(".dump.txt"))
+                                            continue;
+                                        var Info = new TaskInfo(TaskType.WordWrap, File);
+                                        Tasks.Add(Info);
+                                    }
+                                }
+                                i++;
+                                break;
+                            }
+
+                            if (CIsFlag)
+                            {
+                                if (File.Exists(ParamA))
+                                {
+                                    var Info = new TaskInfo(TaskType.WordWrap, ParamA, ParamB);
+                                    Tasks.Add(Info);
+                                }
+                                else if (Directory.Exists(ParamA))
+                                {
+                                    var Files = Directory.GetFiles(ParamA, "*.*", SearchOption.AllDirectories);
+                                    foreach (var File in Files)
+                                    {
+                                        if (File.EndsWith(".dump.txt"))
+                                            continue;
+
+                                        var TxtFile = Path.Combine(ParamB, Path.GetFileNameWithoutExtension(File) + ".dump.txt");
+                                        var Info = new TaskInfo(TaskType.WordWrap, File, TxtFile);
+                                        Tasks.Add(Info);
+                                    }
+                                }
+                                i += 2;
+                                break;
+                            }
+
                             if (File.Exists(ParamA))
                             {
-                                Tasks.Add(new TaskInfo(TaskType.WordWrap, ParamA));
+                                var Info = new TaskInfo(TaskType.WordWrap, ParamA, ParamB, ParamC);
+                                Tasks.Add(Info);
                             }
-                            else
+                            else if (Directory.Exists(ParamA))
                             {
                                 var Files = Directory.GetFiles(ParamA, "*.*", SearchOption.AllDirectories);
                                 foreach (var File in Files)
                                 {
                                     if (File.EndsWith(".dump.txt"))
                                         continue;
-                                    var Info = new TaskInfo(TaskType.Insert, File);
+
+                                    var TxtFile = Path.Combine(ParamB, Path.GetFileNameWithoutExtension(File) + ".dump.txt");
+                                    var OutFile = Path.Combine(ParamC, Path.GetFileNameWithoutExtension(File) + "_Wordwrap" + Path.GetExtension(File));
+                                    var Info = new TaskInfo(TaskType.WordWrap, File, TxtFile, OutFile);
                                     Tasks.Add(Info);
                                 }
                             }
+                            i += 3;
                             break;
                         case "debug":
                         case "dbg":
@@ -220,7 +292,17 @@ namespace StringTool
                             Wrapper.Export(OriText, Task.OutputFile);
                             break;
                         case TaskType.WordWrap:
-                            throw new NotImplementedException();
+                            Console.WriteLine($"Processing: {Path.GetFileName(Task.InputFile)}");
+                            var OriLines = Wrapper.Import(Task.InputFile);
+                            var TlLines = File.ReadAllLines(Task.InputText);
+                            Escaper.Unescape(TlLines);
+                            for (int i = 0; i < OriLines.Length; i++)
+                                if (TlLines[i] != OriLines[i])
+                                    TlLines[i] = TlLines[i].WordWrap();
+                            Wrapper.Export(TlLines, Task.OutputFile);
+                            Escaper.Escape(TlLines);
+                            File.WriteAllLines(Task.InputText, TlLines);
+                            break;
                     }
                 }
                 catch (Exception ex) {

@@ -56,6 +56,9 @@ namespace StringTool
                     OutputFile = Path.Combine(Path.GetDirectoryName(InputFile), Path.GetFileNameWithoutExtension(InputFile) + ".dump.txt");
                     break;
                 case TaskType.WordWrap:
+                    if (InputText == null || !File.Exists(InputText)) {
+                        InputText = Path.Combine(Path.GetDirectoryName(InputFile), Path.GetFileNameWithoutExtension(InputFile) + ".dump.txt");
+                    }
                     OutputFile = Path.Combine(Path.GetDirectoryName(InputFile), Path.GetFileNameWithoutExtension(InputFile).Replace("_New", "") + "_Wordwrap" + Path.GetExtension(InputFile));
                     break;
                 case TaskType.Debug:
