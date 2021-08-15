@@ -244,7 +244,29 @@ namespace KrKrFilter {
 				if (NValue.EndsWith("\""))
 					NValue = NValue.Substring(0, NValue.Length - 1) + "”";
 				
-				NValue = NValue.Replace(" \"", "“").Replace("\" ", "”");
+				NValue = NValue.Replace(" \"", " “").Replace("\" ", "” ");
+				
+				for (int i = 0; i < NValue.Length; i++){
+					char? Last = (i - 1 >= 0) ? (char?)NValue[i-1] : null;
+					char? Next = (i + 1 < NValue.Length) ? (char?)NValue[i+1] : null;
+					char Current = NValue[i];
+					if (Current != '"')
+						continue;
+					
+					int QuoteType = 1;
+					
+					if (Last != null && char.IsPunctuation((char)Last))
+						QuoteType = 0;
+					
+					string Part = "";
+					if (Last != null)
+						Part += (char)Last;
+					Part += Current;
+					if (Next != null)
+						Part += (char)Next;
+					
+					NValue = NValue.Replace(Part, Part.Replace("\"", QuoteType == 1 ? "”" : "“"));
+				}
 			}
 			foreach (var Possibility in Possibilities){
 				if (!Tag.Contains(Possibility))
