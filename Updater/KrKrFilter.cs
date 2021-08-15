@@ -25,6 +25,9 @@ namespace KrKrFilter {
 		//Some few games break the line in the source script to break in
 		//the game as well, if this is the case keep this enabled.
 		private bool AutoMergeLines = true;
+		
+		//Auto replace " to special quote characters to prevent escape problems
+		private bool SpecialQuotes = true;
         
 		private string[] Lines = new string[0];
         private Dictionary<uint, string> Prefix = new Dictionary<uint, string>();
@@ -234,6 +237,15 @@ namespace KrKrFilter {
 				string.Format(" {0}=\"{1}\"", Prop, GetTagPropValue(Tag, Prop)), 
 				string.Format(" {0}='{1}'", Prop, GetTagPropValue(Tag, Prop)), 
 			};
+			if (SpecialQuotes) {
+				if (NValue.StartsWith("\""))
+					NValue = "“" + NValue.Substring(1);
+				
+				if (NValue.EndsWith("\""))
+					NValue = NValue.Substring(0, NValue.Length - 1) + "”";
+				
+				NValue = NValue.Replace(" \"", "“").Replace("\" ", "”");
+			}
 			foreach (var Possibility in Possibilities){
 				if (!Tag.Contains(Possibility))
 					continue;
