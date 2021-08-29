@@ -35,6 +35,11 @@ namespace StringTool
         public TaskInfo(TaskType Type, string InputFile) : this(Type, InputFile, null) { }
         public TaskInfo(TaskType Type, string InputFile, string InputText)
         {
+            if (File.Exists(InputFile))
+                InputFile = new FileInfo(InputFile).FullName;
+            
+            if (File.Exists(InputText))
+                InputFile = new FileInfo(InputText).FullName;
 
             switch (Type)
             {

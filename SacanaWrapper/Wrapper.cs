@@ -223,7 +223,7 @@ namespace SacanaWrapper
             //Initialize Plugin
             bool InitializeWithScript = Ini.GetConfig("Plugin", "Initialize;InputOnCreate;initialize;inputoncreate", Plugin, false).ToLower() == "true";
             if (File.Exists(SourcePath) && Source1Time > Source2Time && Source1Time > DLLTime) {
-                this.Plugin = new DotNetVM(File.ReadAllText(SourcePath, Encoding.UTF8), Path);
+                this.Plugin = new DotNetVM(new string[] { SourcePath }, Path);
                 Source = SourcePath;
             } else if (File.Exists(SourcePath2) && Source2Time > Source1Time && Source2Time > DLLTime) {
                 throw new NotSupportedException();

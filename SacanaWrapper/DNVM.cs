@@ -31,7 +31,21 @@ class DotNetVM {
             Lines = tmp;
         }
 
-        Assembly = InitializeEngine(Lines, FileName);
+        Assembly = InitializeEngine(Lines, FileName, null);
+    }
+    internal DotNetVM(string[] SourceFiles, string FileName)
+    {
+        List<string> Lines = new List<string>();
+        foreach (var File in SourceFiles)
+        {
+            var Sr = System.IO.File.OpenText(File);
+            while (Sr.Peek() != -1)
+            {
+                Lines.Add(Sr.ReadLine());
+            }
+        }
+
+        Assembly = InitializeEngine(Lines.ToArray(), FileName, SourceFiles.First());
     }
 
     private void DllInitialize(string Dll) {
@@ -102,7 +116,7 @@ class DotNetVM {
     }
 
     const string ImportFlag = "#import ";
-    private Assembly InitializeEngine(string[] lines, string FileName)
+    private Assembly InitializeEngine(string[] lines, string FileName, string SourcePath)
     {
         var References = new List<MetadataReference>();
 
@@ -116,12 +130,15 @@ class DotNetVM {
 
         string SourceCode = string.Empty;
         int Imports = 0;
-        bool SystemAdded = false;
         foreach (string line in lines)
         {
-            if (line.ToLower().StartsWith(ImportFlag))
+            if (line.ToLower().StartsWith(ImportFlag) || line.ToLower().StartsWith("//" + ImportFlag))
             {
-                string ReferenceName = line.Substring(ImportFlag.Length, line.Length - ImportFlag.Length).Trim();
+                int Skip = 0;
+                if (line.StartsWith("//"))
+                    Skip = 2;
+
+                string ReferenceName = line.Substring(Skip + ImportFlag.Length, line.Length - (Skip + ImportFlag.Length)).Trim();
                 if (ReferenceName.Contains("//"))
                     ReferenceName = ReferenceName.Substring(0, ReferenceName.IndexOf("//")).Trim();
                 ReferenceName = ReferenceName.Replace("%CD%", AppDomain.CurrentDomain.BaseDirectory);
@@ -155,27 +172,21 @@ class DotNetVM {
                 }
 
 
-                Imports++;
+                SourceCode += "//" + line + "\r\n";
                 continue;
             }
-            if (line.StartsWith("using ") || line.StartsWith("public class ") || line.StartsWith("namespace  ") || line.StartsWith("class ")) {
-                if (!SystemAdded) {
-                    SystemAdded = true;
-                    Imports++;
-                    SourceCode += "using System;\r\n";
-                }
-            }
+          
             SourceCode += line + "\r\n";
         }
 
-        var SyntaxTree = CSharpSyntaxTree.ParseText(SourceCode);
+        var SyntaxTree = CSharpSyntaxTree.ParseText(SourceCode, new CSharpParseOptions(LanguageVersion.Preview), SourcePath, System.Text.Encoding.UTF8);
 
-        var Compilation = CSharpCompilation.Create($"{System.IO.Path.GetFileNameWithoutExtension(FileName)}.dll", new[] { SyntaxTree }, References, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var Compilation = CSharpCompilation.Create($"{System.IO.Path.GetFileNameWithoutExtension(FileName)}.dll", new[] { SyntaxTree }, References, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true, usings: new[] { "System" } )); ;
         
-
         using (var Stream = new System.IO.MemoryStream())
+        using (var PDBStream = new System.IO.MemoryStream())
         {
-            EmitResult result = Compilation.Emit(Stream);
+            EmitResult result = Compilation.Emit(Stream, PDBStream);
 
             if (!result.Success)
             {
@@ -183,15 +194,18 @@ class DotNetVM {
 
                 List<Exception> Errors = new List<Exception>();
                 foreach (Diagnostic diagnostic in failures.OrderBy(o => o.Location.GetLineSpan().StartLinePosition.Line))
-                    Errors.Add(new Exception($"({diagnostic.Location.GetLineSpan().StartLinePosition.Line+Imports}) {diagnostic.Id}: {diagnostic.GetMessage()}"));
+                    Errors.Add(new Exception($"({diagnostic.Location.GetLineSpan().StartLinePosition.Line + Imports}) {diagnostic.Id}: {diagnostic.GetMessage()}"));
 
                 throw new AggregateException(Errors.ToArray());
             }
 
             if (FileName != null)
+            {
                 System.IO.File.WriteAllBytes(FileName, Stream.ToArray());
+                System.IO.File.WriteAllBytes(System.IO.Path.GetFileNameWithoutExtension(FileName) + ".pdb", Stream.ToArray());
+            }
 
-            return Assembly.Load(Stream.ToArray());
+            return Assembly.Load(Stream.ToArray(), PDBStream.ToArray());
         }
 
     }
