@@ -91,7 +91,6 @@ namespace QLIE {
 		}
 		
         public byte[] Export(string[] Text) {
-			System.Diagnostics.Debugger.Launch();
 			StringBuilder SB = new StringBuilder();
 			for (int i = 0, x = 0; i < Script.Length; i++){
 				string line = Script[i].Trim();
