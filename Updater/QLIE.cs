@@ -19,7 +19,7 @@ namespace QLIE {
 			string Str = string.Empty;
 			for (int i = 1; i < Script.Length; i++){
 				string line = Script[i].Trim();
-				if (line.StartsWith("^") || line.StartsWith("@") || line.StartsWith("\\") || string.IsNullOrEmpty(line)){
+				if (IsCommand(line)){
 					if (Str != string.Empty){
 						Lines.Add(Str.Substring(1));
 						Str = string.Empty;
@@ -32,14 +32,21 @@ namespace QLIE {
 				}
 				string[] Parts = Split(line);
 				if (Parts.Length == 3){
+					if (Str != string.Empty){
+						Lines.Add(Str);
+						Str = string.Empty;
+					}
+					
 					Lines.Add(Parts[1]);
 					Str += "\n" + Parts[2];
 					continue;
 				}
 				Str += "\n" + line;
 			}
+			
 			if (Str != string.Empty){
 				Lines.Add(Str);
+				Str = string.Empty;
 			}
 			
             return Lines.ToArray();
@@ -90,18 +97,21 @@ namespace QLIE {
 			}
 		}
 		
+		private bool IsCommand(string line){
+			return line.StartsWith("^") || line.StartsWith("@") || line.StartsWith("\\") || string.IsNullOrEmpty(line);
+		}
+		
         public byte[] Export(string[] Text) {
 			StringBuilder SB = new StringBuilder();
 			for (int i = 0, x = 0; i < Script.Length; i++){
 				string line = Script[i].Trim();
-				if (line.StartsWith("^") || line.StartsWith("@") || line.StartsWith("\\") || string.IsNullOrEmpty(line)){
+				if (IsCommand(line)){
 					if (line.StartsWith("^select")){
 						var SelParts = Split(line);
 						if (SelParts.Length > 1) {
 							for (int ind = 1; ind < SelParts.Length; ind++){
 								SelParts[ind] = Text[x++].Replace(" ", "　");
 							}
-							Console.WriteLine("X: " + x + " I:" + i);
 							SB.AppendLine(string.Join(",", SelParts));
 							continue;
 						}
@@ -110,6 +120,15 @@ namespace QLIE {
 					continue;
 				}
 				string[] Parts = Split(line);
+				
+				for (int ind = i + 1; ind < Script.Length; ind++)
+				{
+					string NextLine = Script[ind];
+					if (IsCommand(NextLine) || Split(NextLine).Length == 3)
+						break;
+					i++;
+				}
+				
 				if (Parts.Length == 3){
 					SB.AppendLine(string.Format("{0},{1},{2}", Parts[0], Text[x++].Replace(",", "､"), Text[x++].Replace("\n", "\r\n").Replace(",", "､")));
 				} else if (Parts.Length != 1){
