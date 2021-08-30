@@ -1,4 +1,5 @@
 ﻿#IMPORT System.Linq.dll
+#IMPORT System.Core.dll
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,6 +24,10 @@ namespace QLIE {
 						Lines.Add(Str.Substring(1));
 						Str = string.Empty;
 					}
+					if (line.StartsWith("^select")){
+						var Choices = Split(line).Skip(1).ToArray();
+						Lines.AddRange(Choices);
+					}
 					continue;
 				}
 				string[] Parts = Split(line);
@@ -44,6 +49,7 @@ namespace QLIE {
 			string File = string.Empty;
 			string Name = string.Empty;
 			string Text = string.Empty;
+			List<string> Other = new List<string>();
 			int Part = 0;
 			bool InTag = false;
 			foreach (char c in Line){
@@ -63,8 +69,11 @@ namespace QLIE {
 					case 1:
 						Name += c;
 						break;
-					default:
+					case 2:
 						Text += c;
+						break;
+					default:
+						Other[Part-3] += c;
 						break;
 				}
 			}
@@ -74,16 +83,30 @@ namespace QLIE {
 					return new string[] {File};
 				case 1:
 					return new string[] {File, Name};
-				default:
+				case 2:
 					return new string[] {File, Name, Text};
+				default:
+					return new string[] {File, Name, Text}.Concat(Other).ToArray();
 			}
 		}
 		
         public byte[] Export(string[] Text) {
+			System.Diagnostics.Debugger.Launch();
 			StringBuilder SB = new StringBuilder();
 			for (int i = 0, x = 0; i < Script.Length; i++){
 				string line = Script[i].Trim();
 				if (line.StartsWith("^") || line.StartsWith("@") || line.StartsWith("\\") || string.IsNullOrEmpty(line)){
+					if (line.StartsWith("^select")){
+						var SelParts = Split(line);
+						if (SelParts.Length > 1) {
+							for (int ind = 1; ind < SelParts.Length; ind++){
+								SelParts[ind] = Text[x++].Replace(" ", "　");
+							}
+							Console.WriteLine("X: " + x + " I:" + i);
+							SB.AppendLine(string.Join(",", SelParts));
+							continue;
+						}
+					}
 					SB.AppendLine(Script[i]);
 					continue;
 				}
