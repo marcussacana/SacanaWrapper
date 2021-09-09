@@ -19,7 +19,7 @@ namespace KrKrFilter {
 		//Encoding.GetEncoding(932); //SJIS
 		//Encoding.Unicode; //UTF16
 		//Encoding.Default; //Operating System Default Encoding
-        private Encoding Eco = Encoding.Unicode;
+        private Encoding Eco = Encoding.GetEncoding(932);
         private Encoding Eco2 = Encoding.Unicode;
 		
 		//Some few games break the line in the source script to break in
@@ -42,7 +42,7 @@ namespace KrKrFilter {
 			
             string Decoded = Eco.GetString(Script);
             Decoded = Decoded.Replace("\r\n", "\n");
-            Lines = Decoded.Split('\n');
+            Lines = Decoded.Replace("\r", "\n").Split('\n');
         }
 		
 		public byte[] Decode(byte[] Script){
@@ -134,7 +134,7 @@ namespace KrKrFilter {
         }
 		
 		string[] STags = new string[] { "chara_" };//Non Text tags with similar Text Tag Proprieties
-        string[] TTag = new string[] { "t", "char", "chara", "actor", "txt", "name", "disp", "text" };
+        string[] TTag = new string[] { "t", "n", "char", "chara", "actor", "txt", "name", "disp", "text" };
         private bool ContainsTextOnTag(string Line) {
 			if (Line == string.Empty)
 				return false;
@@ -281,7 +281,7 @@ namespace KrKrFilter {
             { ";", " ", "[cm]", "[hr]", "[wt]", "[line1]", "[line2]", "[line3]", "[line4]", "[line5]", "[line6]",
             "[line7]", "[line8]", "[line9]", "[r]", "[l]" , "\\", "[SYSTEM_MENU_ON_OPENING]",
             "[SYSTEM_MENU_ON]", "[FUNC_LOAD_PLUGIN]", "[plc]", "[style pitch=-1]", "[resetstyle]",
-            "―", "　", "[endlink]", "[np]" };
+            "―", "　", "[endlink]", "[np]", "[T_NEXT]" };
 
             string ResultLine = Line;
             if (Mode) {
@@ -417,3 +417,4 @@ namespace KrKrFilter {
 
     }
 }
+
