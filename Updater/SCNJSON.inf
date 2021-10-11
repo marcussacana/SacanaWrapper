@@ -1,0 +1,5 @@
+[Plugin]
+Import=JSON.Plain>Import
+Export=JSON.Plain>Export
+Extensions=JSON
+Initialize=true
