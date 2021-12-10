@@ -55,7 +55,12 @@ namespace StringTool
                         else
                             throw new Exception("No script found for the dump: " + Path.GetFileName(InputFile));
                     }
-                    OutputFile = Path.Combine(Path.GetDirectoryName(InputFile), Path.GetFileNameWithoutExtension(InputFile) + "_New" + Path.GetExtension(InputFile));
+                    else if (Directory.GetFiles(Path.GetDirectoryName(InputFile), Path.GetFileNameWithoutExtension(InputFile) + ".*").Length == 2) {
+                        var Files = Directory.GetFiles(Path.GetDirectoryName(InputFile), Path.GetFileNameWithoutExtension(InputFile) + ".*");
+                        InputText = InputFile;
+                        InputFile = Files.Where(x => !x.EndsWith(Path.GetFileName(InputFile))).Single();
+                    }
+                    OutputFile = Path.Combine(Path.GetDirectoryName(InputFile), Path.GetFileNameWithoutExtension(InputFile) + Path.GetExtension(InputFile) + ".new");
                     break;
                 case TaskType.Dump:
                     OutputFile = Path.Combine(Path.GetDirectoryName(InputFile), Path.GetFileNameWithoutExtension(InputFile) + ".dump.txt");
@@ -64,7 +69,7 @@ namespace StringTool
                     if (InputText == null || !File.Exists(InputText)) {
                         InputText = Path.Combine(Path.GetDirectoryName(InputFile), Path.GetFileNameWithoutExtension(InputFile) + ".dump.txt");
                     }
-                    OutputFile = Path.Combine(Path.GetDirectoryName(InputFile), Path.GetFileNameWithoutExtension(InputFile).Replace("_New", "") + "_Wordwrap" + Path.GetExtension(InputFile));
+                    OutputFile = Path.Combine(Path.GetDirectoryName(InputFile), Path.GetFileNameWithoutExtension(InputFile).Replace("_New", "").Replace(".new", "") + "_Wordwrap" + Path.GetExtension(InputFile));
                     break;
                 case TaskType.Debug:
                     OutputFile = InputFile;

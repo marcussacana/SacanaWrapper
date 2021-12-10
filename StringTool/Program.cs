@@ -124,6 +124,9 @@ namespace StringTool
                                 else if (Directory.Exists(ParamA))
                                 {
                                     var Files = Directory.GetFiles(ParamA, "*.dump.txt", SearchOption.AllDirectories);
+                                    if (Files.Length == 0)
+                                        Files = Directory.GetFiles(ParamA, "*.txt", SearchOption.AllDirectories);
+
                                     foreach (var File in Files)
                                     {
                                         var Info = new TaskInfo(TaskType.Insert, File);
