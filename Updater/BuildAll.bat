@@ -20,8 +20,13 @@ for /f "delims=" %%s in ('dir /b /s *.cs') do (
 	
 	if exist tmp.cs (del /Q tmp.cs)
 	findstr /V "#IMPORT" "!File!">"tmp.cs"
-
-	csc "/lib:%CD%" /t:library "/r:!References!" tmp.cs
+	
+	if "!References!"=="" (
+		csc "/lib:%CD%" /t:library tmp.cs
+	) else (
+		csc "/lib:%CD%" /t:library "/r:!References!" tmp.cs
+	)
+	
 	if exist tmp.dll (
 		del !Name!.dll
 		ren tmp.dll !Name!.dll
