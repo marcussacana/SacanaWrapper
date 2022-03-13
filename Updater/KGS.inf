@@ -1,5 +1,4 @@
 [Plugin]
-Version=1.0
 Import=NekoNyan.KGS>Import
 Export=NekoNyan.KGS>Export
 Extensions=KGS

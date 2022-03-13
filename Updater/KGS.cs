@@ -26,23 +26,29 @@ namespace NekoNyan {
 
         public string[] Import() {
 			List<string> Lines = new List<string>();
-			string Str = string.Empty;
+			
 			for (int i = 0; i < Script.Length; i++){
 				string line = Script[i];
 				
 				if (line.Trim() == string.Empty || line.StartsWith("//") || line.StartsWith("_") || line.StartsWith("@") || line.StartsWith("#"))
 					continue;
 				
+				int JapCount = 0;
 				foreach (var Char in line){
 					var Range = UnicodeRanges.GetRange(Char);
 					
 					if (SJISRange.Contains(Range))
-						goto Next;
+						JapCount++;
 				}
+				
+				int NonJap = line.Length - JapCount;
+				if (JapCount > NonJap)
+					continue;
 				
 				Lines.Add(line);
 				Next:;
 			}
+			
             return Lines.ToArray();
         }
 		
@@ -54,7 +60,7 @@ namespace NekoNyan {
 			Range.GeneralPunctuation,
 			Range.CJKSymbolsAndPunctuation,
 			Range.HalfwidthAndFullwidthForms,
-			Range.BoxDrawing
+			//Range.BoxDrawing
 		};
 		
 		public void AppendArray<T>(ref T[] Array, T Value){
@@ -65,9 +71,10 @@ namespace NekoNyan {
 		}
 
         public byte[] Export(string[] Text) {
-			int x = 0;
 			StringBuilder SB = new StringBuilder();
-			foreach (string line in Script){				
+			
+			for (int i = 0, x = 0; i < Script.Length; i++){
+				string line = Script[i];			
 				
 				if (line.Trim() == string.Empty || line.StartsWith("//") || line.StartsWith("_") || line.StartsWith("@") || line.StartsWith("#")){
 					SB.AppendLine(line);
@@ -75,19 +82,21 @@ namespace NekoNyan {
 				}
 				
 				
+				int JapCount = 0;
 				foreach (var Char in line){
 					var Range = UnicodeRanges.GetRange(Char);
 					
-					
-					if (SJISRange.Contains(Range)){
-						SB.AppendLine(line);
-						goto Next;
-					}
+					if (SJISRange.Contains(Range))
+						JapCount++;
 				}
 				
+				int NonJap = line.Length - JapCount;
+				if (JapCount > NonJap) {
+					SB.AppendLine(line);
+					continue;
+				}
 				
 				SB.AppendLine(Text[x++]);
-				Next:;
 			}
 			
 			return Eco.GetBytes(SB.ToString());
