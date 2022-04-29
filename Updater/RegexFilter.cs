@@ -18,7 +18,7 @@ public class RegexFilter
     string[] Regexs = new string[] {
 
         //EntisGLS
-        "text_EN=\"([^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"", "name_EN=\"([^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"" 
+        "(?:text_EN=\"([^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"|name_EN=\"([^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\")" 
     };
     public RegexFilter(byte[] Script) {
         this.Script = Encoding.GetString(Script);
