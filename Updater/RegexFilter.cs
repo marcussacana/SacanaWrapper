@@ -35,8 +35,11 @@ public class RegexFilter
             {
                 foreach (var Group in Result.Groups.Cast<Group>().Skip(1))
                 {
-                    Entries.Add(new Entry() { Offset = Group.Index, Length = Group.Length });
-                    Lines.Add(HttpUtility.HtmlDecode(Group.Value));
+                    var Line = HttpUtility.HtmlDecode(Group.Value);
+                    if (!string.IsNullOrWhiteSpace(Line)){
+						Lines.Add(Line);
+						Entries.Add(new Entry() { Offset = Group.Index, Length = Group.Length });
+					}
                 }
             }
         }
