@@ -59,12 +59,16 @@ namespace QLIE {
 			List<string> Other = new List<string>();
 			int Part = 0;
 			bool InTag = false;
+			bool InStr = false;
+			bool HasStr = Line.StartsWith("\"") && Line.EndsWith("\"");
 			foreach (char c in Line){
 				if (c == '[')
 					InTag = true;
 				if (c == ']')
 					InTag = false;
-				if (c == ',' && !InTag){
+				if (c == '"' && HasStr)
+					InStr = !InStr;
+				if (c == ',' && !InTag && !InStr){
 					Part++;
 					continue;
 				}
