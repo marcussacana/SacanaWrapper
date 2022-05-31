@@ -15,6 +15,7 @@ namespace QLIE {
         }
 
         public string[] Import() {
+			//System.Diagnostics.Debugger.Launch();
 			List<string> Lines = new List<string>();
 			string Str = string.Empty;
 			for (int i = 1; i < Script.Length; i++){
@@ -60,7 +61,7 @@ namespace QLIE {
 			int Part = 0;
 			bool InTag = false;
 			bool InStr = false;
-			bool HasStr = Line.StartsWith("\"") && Line.EndsWith("\"");
+			bool HasStr = true; // Line.StartsWith("\"") && Line.EndsWith("\"");
 			foreach (char c in Line){
 				if (c == '[')
 					InTag = true;
