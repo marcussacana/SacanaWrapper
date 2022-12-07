@@ -122,11 +122,14 @@ class DotNetVM {
 
         var CreateReferenceFromAssembly = typeof(MetadataReference).GetMethods(BindingFlags.Public | BindingFlags.Static).Where(x => x.GetParameters().Length == 1 && x.Name == "CreateFromAssembly").Single();
 
-        var SystemAsm = (from x in AppDomain.CurrentDomain.GetAssemblies() where x.FullName.StartsWith("System,") select x);
-        var MscorlibAsm = (from x in AppDomain.CurrentDomain.GetAssemblies() where x.FullName.StartsWith("mscorlib,") select x);
+        var SystemAsm = (from x in AppDomain.CurrentDomain.GetAssemblies() where x.FullName.StartsWith("System,") select x).Single();
+        var MscorlibAsm = (from x in AppDomain.CurrentDomain.GetAssemblies() where x.FullName.StartsWith("mscorlib,") select x).Single();
 
-        References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { SystemAsm.Single() }));
-        References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { MscorlibAsm.Single() }));
+        if (SystemAsm == null || MscorlibAsm == null)
+            throw new NullReferenceException("Basic Reference Assembly Not Found");
+
+        References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { SystemAsm }));
+        References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { MscorlibAsm }));
 
         string SourceCode = string.Empty;
         int Imports = 0;
@@ -162,9 +165,10 @@ class DotNetVM {
                         }
                         catch
                         {
-                            var Assemblies = (from x in AppDomain.CurrentDomain.GetAssemblies() where x.FullName.StartsWith(ReferenceName+",") select x);
+                            var Assemblies = (from x in AppDomain.CurrentDomain.GetAssemblies() where x.FullName.StartsWith(ReferenceName+",") && !string.IsNullOrWhiteSpace(x.Location) select x).ToArray();
 
-                            foreach (var Assemby in Assemblies)
+
+                            foreach (var Assembly in Assemblies)
                                 References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { Assembly }));
 
                         }
