@@ -60,7 +60,7 @@ public class RegexFilter
 		if (!Str.Contains("\"") && !Str.Contains(",") && !Str.Contains("\n"))
 			return Str;
 		Str = Str.Replace("\"", "\"\"");
-		return $"\"{Str}\"";
+		return "\""+ Str + "\"";
 	}
 
     List<Entry> Entries = new List<Entry>();

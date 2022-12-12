@@ -1,6 +1,7 @@
 call "%VS140COMNTOOLS%vcvars.bat"
 call "%VS140COMNTOOLS%VSVars32.bat"
 call "%VS140COMNTOOLS%VsDevCmd.bat"
+set PATH=%PATH%;C:\Windows\Microsoft.NET\Framework\v4.0.30319\
 echo off
 cls
 setlocal enabledelayedexpansion
@@ -46,8 +47,23 @@ if not "!str:~0,1!" == "#" (
 )
 set str=!str:~8!
 set str=!str:^%CD^%\Plugins\=\!
+call :TRIM str
+set str=!str:System.Linq=System.Core!
+set str=!str:System.Collections.Generic=System.Core!
+set str=!str:System.Text=System.Core!
 goto :eof
 
 :ColorEcho
 powershell write-host -fore %1 %2
 goto :eof
+
+
+:TRIM
+SetLocal EnableDelayedExpansion
+Call :TRIMSUB %%%1%%
+EndLocal & set %1=%tempvar%
+GOTO :EOF
+
+:TRIMSUB
+set tempvar=%*
+GOTO :EOF
