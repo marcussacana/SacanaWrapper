@@ -3,10 +3,10 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.IO;
 
 class DotNetVM {
     public enum Language {
@@ -48,9 +48,15 @@ class DotNetVM {
         Assembly = InitializeEngine(Lines.ToArray(), FileName, SourceFiles.First());
     }
 
-    private void DllInitialize(string Dll) {
-        Assembly = Assembly.LoadFrom(Dll);
+    private void DllInitialize(string DLL) {
+        this.DLL = DLL;
+
+        if (!File.Exists(AssemblyDebugSymbols))
+            Assembly = Assembly.LoadFrom(AssemblyPath);
+        else
+            Assembly = Assembly.Load(File.ReadAllBytes(AssemblyPath), File.ReadAllBytes(AssemblyDebugSymbols));
     }
+
     public Assembly Assembly { get; private set; }
 
 
@@ -63,7 +69,7 @@ class DotNetVM {
 
     public string AssemblyDebugSymbols {
         get {
-            return System.IO.Path.GetDirectoryName(DLL) + "\\" + System.IO.Path.GetFileNameWithoutExtension(DLL) + ".pdb";
+            return Path.Combine(Path.GetDirectoryName(DLL),  Path.GetFileNameWithoutExtension(DLL) + ".pdb");
         }
     }
 
@@ -116,7 +122,7 @@ class DotNetVM {
     }
 
     const string ImportFlag = "#import ";
-    private Assembly InitializeEngine(string[] lines, string FileName, string SourcePath)
+    private Assembly InitializeEngine(string[] Lines, string FileName, string SourcePath)
     {
         var References = new List<MetadataReference>();
 
@@ -128,27 +134,27 @@ class DotNetVM {
         if (SystemAsm == null || MscorlibAsm == null)
             throw new NullReferenceException("Basic Reference Assembly Not Found");
 
-        References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { SystemAsm }));
         References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { MscorlibAsm }));
+        References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { SystemAsm }));
 
         string SourceCode = string.Empty;
         int Imports = 0;
-        foreach (string line in lines)
+        foreach (string Line in Lines)
         {
-            if (line.ToLower().StartsWith(ImportFlag) || line.ToLower().StartsWith("//" + ImportFlag))
+            if (Line.ToLower().StartsWith(ImportFlag) || Line.ToLower().StartsWith("//" + ImportFlag))
             {
                 int Skip = 0;
-                if (line.StartsWith("//"))
+                if (Line.StartsWith("//"))
                     Skip = 2;
 
-                string ReferenceName = line.Substring(Skip + ImportFlag.Length, line.Length - (Skip + ImportFlag.Length)).Trim();
+                string ReferenceName = Line.Substring(Skip + ImportFlag.Length, Line.Length - (Skip + ImportFlag.Length)).Trim();
                 if (ReferenceName.Contains("//"))
                     ReferenceName = ReferenceName.Substring(0, ReferenceName.IndexOf("//")).Trim();
                 ReferenceName = ReferenceName.Replace("%CD%", AppDomain.CurrentDomain.BaseDirectory);
 
 
 
-                if (System.IO.File.Exists(ReferenceName))
+                if (File.Exists(ReferenceName))
                     References.Add(MetadataReference.CreateFromFile(ReferenceName));
                 else
                 {
@@ -160,7 +166,7 @@ class DotNetVM {
                     {
                         try
                         {
-                            ReferenceName = System.IO.Path.GetFileNameWithoutExtension(ReferenceName);
+                            ReferenceName = Path.GetFileNameWithoutExtension(ReferenceName);
                             References.Add((MetadataReference)CreateReferenceFromAssembly.Invoke(null, new object[] { Assembly.Load(ReferenceName) }));
                         }
                         catch
@@ -176,19 +182,21 @@ class DotNetVM {
                 }
 
 
-                SourceCode += "//" + line + "\r\n";
+                SourceCode += "//" + Line + "\r\n";
                 continue;
             }
           
-            SourceCode += line + "\r\n";
+            SourceCode += Line + "\r\n";
         }
+
+        DLL = Path.Combine(Path.GetDirectoryName(FileName), $"{Path.GetFileNameWithoutExtension(FileName)}.dll");
 
         var SyntaxTree = CSharpSyntaxTree.ParseText(SourceCode, new CSharpParseOptions(LanguageVersion.Preview), SourcePath, System.Text.Encoding.UTF8);
 
-        var Compilation = CSharpCompilation.Create($"{System.IO.Path.GetFileNameWithoutExtension(FileName)}.dll", new[] { SyntaxTree }, References, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true, usings: new[] { "System" } )); ;
+        var Compilation = CSharpCompilation.Create(Path.GetFileName(AssemblyPath), new[] { SyntaxTree }, References, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true, usings: new[] { "System" } )); ;
         
-        using (var Stream = new System.IO.MemoryStream())
-        using (var PDBStream = new System.IO.MemoryStream())
+        using (var Stream = new MemoryStream())
+        using (var PDBStream = new MemoryStream())
         {
             EmitResult result = Compilation.Emit(Stream, PDBStream);
 
@@ -205,8 +213,8 @@ class DotNetVM {
 
             if (FileName != null)
             {
-                System.IO.File.WriteAllBytes(FileName, Stream.ToArray());
-                System.IO.File.WriteAllBytes(System.IO.Path.GetFileNameWithoutExtension(FileName) + ".pdb", Stream.ToArray());
+                File.WriteAllBytes(AssemblyPath, Stream.ToArray());
+                File.WriteAllBytes(AssemblyDebugSymbols, Stream.ToArray());
             }
 
             return Assembly.Load(Stream.ToArray(), PDBStream.ToArray());
@@ -219,7 +227,7 @@ class DotNetVM {
             string codeBase = Assembly.GetExecutingAssembly().CodeBase;
             UriBuilder uri = new UriBuilder(codeBase);
             string path = Uri.UnescapeDataString(uri.Path);
-            return System.IO.Path.GetDirectoryName(path).TrimEnd('\\', '/');
+            return Path.GetDirectoryName(path).TrimEnd('\\', '/');
         }
     }
 }
