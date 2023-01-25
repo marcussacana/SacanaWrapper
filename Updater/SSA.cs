@@ -25,7 +25,7 @@ namespace SSA {
                 //Dialogue: 10,0:00:05.77,0:00:09.36,Default,Subaru,0,0,0,,I'm in deep shit. Seriously deep shit!
 
                 try {
-                    if (string.IsNullOrWhiteSpace(Script[i]))
+                    if (string.IsNullOrWhiteSpace(Script[i]) || !Script[i].ToLower().TrimStart().StartsWith("dialogue:"))
                         continue;
                     string Line = GetLine(i);
                     if (Line.StartsWith("{"))
@@ -67,11 +67,14 @@ namespace SSA {
         }
 
         public byte[] Export(string[] Subtitle) {
-            for (int i = StartIndex; i < Script.Length; i++) {
-                int ID = i - StartIndex;
-                if (ID >= Subtitle.Length)
+            for (int i = StartIndex, x = 0; i < Script.Length; i++) {
+                if (x >= Subtitle.Length)
                     break;
-                string NewLine = Subtitle[ID];
+
+                if (!Script[i].ToLower().TrimStart().StartsWith("dialogue:"))
+                    continue;
+
+                string NewLine = Subtitle[x++];
                 FixTags(ref NewLine);
                 if (Prefix.ContainsKey(i))
                     NewLine = Prefix[i] + NewLine;
