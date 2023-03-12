@@ -850,7 +850,7 @@ namespace AdvancedBinary
         }
     }
 
-    class StructReader : BinaryReader
+    public class StructReader : BinaryReader
     {
         public long Length { get { return BaseStream.Length; } }
         public long Position { get {return BaseStream.Position; } set { BaseStream.Position = value; } }
