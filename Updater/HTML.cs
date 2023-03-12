@@ -1,10 +1,12 @@
 ﻿#IMPORT System.Core.dll
 #IMPORT System.Linq.dll
 #IMPORT System.Web.dll
+#IMPORT System.Runtime.dll
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Web;
+using System.Net;
 
 namespace HTML
 {
@@ -171,13 +173,13 @@ namespace HTML
 
         private string GetText(TextInfo Info)
         {
-            return HttpUtility.HtmlDecode(Script.Substring(Info.Begin, Info.End - Info.Begin));
+            return WebUtility.HtmlDecode(Script.Substring(Info.Begin, Info.End - Info.Begin));
         }
 
         private void SetText(TextInfo Info, StringBuilder Builder, string Content)
         {
             Builder.Remove(Info.Begin, Info.Length);
-            Builder.Insert(Info.Begin, HttpUtility.HtmlEncode(Content));
+            Builder.Insert(Info.Begin, WebUtility.HtmlEncode(Content).Replace("&lt;br /&gt;", "<br />").Replace("&lt;br/&gt;", "<br/>").Replace("&lt;br&gt;", "<br>"));
         }
     }
 }
