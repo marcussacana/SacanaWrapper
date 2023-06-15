@@ -29,8 +29,8 @@ namespace TXT {
 			Ignore = new List<uint>();
 			for (uint i = 0; i + 1 < Script.Length; i += 2){
 				
-				uint ID = i;//Untranslated Lines
-			  //uint ID = i + 1;//Translated Lines
+				//uint ID = i;//Untranslated Lines
+			    uint ID = i + 1;//Translated Lines
 				
 				string Str = Script[ID].Replace("::BREAKLINE::", "\n");
 				if (Lines.Contains(Str)){

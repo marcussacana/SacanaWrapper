@@ -147,9 +147,10 @@ namespace HTML
         public byte[] Export(string[] Text)
         {
             StringBuilder SB = new StringBuilder(Script);
-            for (int i = Infos.Count - 1; i >= 0; i--)
-                SetText(Infos[i], SB, Text[i]);
-
+            for (int i = Infos.Count - 1; i >= 0; i--){
+                var OriTxt = GetText(Infos[i]);
+				SetText(Infos[i], SB, Text[i], OriTxt);
+			}
             return Eco.GetBytes(SB.ToString());
         }
 
@@ -176,10 +177,41 @@ namespace HTML
             return WebUtility.HtmlDecode(Script.Substring(Info.Begin, Info.End - Info.Begin));
         }
 
-        private void SetText(TextInfo Info, StringBuilder Builder, string Content)
+        private void SetText(TextInfo Info, StringBuilder Builder, string Content, string OriTxt)
         {
             Builder.Remove(Info.Begin, Info.Length);
-            Builder.Insert(Info.Begin, WebUtility.HtmlEncode(Content).Replace("&lt;br /&gt;", "<br />").Replace("&lt;br/&gt;", "<br/>").Replace("&lt;br&gt;", "<br>"));
+			
+			var EncodedContent = WebUtility.HtmlEncode(Content);
+			foreach (var Tag in AllowTags)
+			{
+				EncodedContent = EncodedContent.Replace("&lt;" + Tag + "&gt;", "<" + Tag + ">");
+				EncodedContent = EncodedContent.Replace("&lt;" + Tag + "/&gt;", "<" + Tag + "/>");
+				EncodedContent = EncodedContent.Replace("&lt;" + Tag + " /&gt;", "<" + Tag + " />");
+				EncodedContent = EncodedContent.Replace("&lt;/" + Tag + "&gt;", "</" + Tag + ">");
+				
+				bool OldHasOpen = OriTxt.Contains("<" + Tag + ">");
+				
+				bool OldHasClose = OriTxt.Contains("<" + Tag + " />");
+				OldHasClose |= OriTxt.Contains("<" + Tag + " />");
+				OldHasClose |= OriTxt.Contains("<" + Tag + "/>");
+				OldHasClose |= OriTxt.Contains("</" + Tag + ">");
+				
+				bool NewHasOpen = EncodedContent.Contains("<" + Tag + ">");
+				
+				bool NewHasClose = EncodedContent.Contains("<" + Tag + " />");
+				NewHasClose |= EncodedContent.Contains("<" + Tag + " />");
+				NewHasClose |= EncodedContent.Contains("<" + Tag + "/>");
+				NewHasClose |= EncodedContent.Contains("</" + Tag + ">");
+				
+				if (OldHasOpen && !NewHasOpen){
+					EncodedContent = "<" + Tag + ">" + EncodedContent;
+				}
+				if (OldHasClose && !NewHasClose){
+					EncodedContent = EncodedContent + "</" + Tag + ">";
+				}
+			}
+			
+            Builder.Insert(Info.Begin, EncodedContent);
         }
     }
 }

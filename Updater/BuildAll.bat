@@ -20,17 +20,17 @@ for /f "delims=" %%s in ('dir /b /s *.cs') do (
 	))
 	
 	if exist tmp.cs (del /Q tmp.cs)
-	findstr /V "#IMPORT" "!File!">"tmp.cs"
+	if exist "!Name!.dll" (del /Q "!Name!.dll")
 	
+	findstr /V "#IMPORT" "!File!">"tmp.cs"
+
 	if "!References!"=="" (
-		csc "/lib:%CD%" /t:library tmp.cs
+		csc "/lib:%CD%" /debug:pdbonly "/out:!Name!.dll" /t:library tmp.cs
 	) else (
-		csc "/lib:%CD%" /t:library "/r:!References!" tmp.cs
+		csc "/lib:%CD%" /debug:pdbonly "/out:!Name!.dll" /t:library "/r:!References!" tmp.cs
 	)
 	
-	if exist tmp.dll (
-		del !Name!.dll
-		ren tmp.dll !Name!.dll
+	if exist "!Name!.dll" (
 		call :ColorEcho Green "!File! - BUILD SUCCESSFULLY"
 	) else (
 		call :ColorEcho Red "!File! - FAILED TO BUILD"
