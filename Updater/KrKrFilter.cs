@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Text;
+using System;
 
 namespace KrKrFilter
 {
@@ -150,7 +151,7 @@ namespace KrKrFilter
                 }
                 else Continue = false;
 
-                if (ContainsTextOnTag(NewLine ?? Lines[i]))
+                if (ContainsTextOnTag(NewLine ?? Line))
                 {
                     Continue = false;
                     int Count = GetTagText(NewLine ?? Line).Length;
@@ -243,7 +244,7 @@ namespace KrKrFilter
 
                 while (Tag.Split('=').First().Contains(" "))
                     Tag = Tag.Substring(Tag.IndexOf(" ") + 1);
-
+				
                 string CurProp = Tag.Split('=').First().TrimStart();
                 bool RightProp = CurProp == Prop;
                 Tag = Tag.Substring(Tag.IndexOf("=") + 1);
@@ -255,6 +256,9 @@ namespace KrKrFilter
                     while (true)
                     {
                         Tag = Tag.Substring(1);
+						if (Tag.Length == 0)
+							break;
+						
                         if (Escape)
                         {
                             Escape = false;
@@ -356,9 +360,14 @@ namespace KrKrFilter
                     string Tag = string.Empty;
                     bool InTag = false;
                     bool IsFurigana = false;
+					bool InString = false;
+					char LastChar;
+					char c = '\x0';
                     for (int i = 0; i < ResultLine.Length; i++)
                     {
-                        char c = ResultLine[i];
+						LastChar = c;
+                        c = ResultLine[i];
+						
                         if (c == '[')
                             InTag = true;
                         if (c == ']')
@@ -372,7 +381,11 @@ namespace KrKrFilter
                             Tag = string.Empty;
                             continue;
                         }
-                        if (c == '\'' && InTag)
+						
+						if (InTag && c == '\"' && LastChar != '\\')
+							InString = !InString;
+						
+                        if (c == '\'' && InTag && !InString)
                             IsFurigana = true;
 
                         if (InTag)
