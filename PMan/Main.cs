@@ -37,8 +37,13 @@ namespace PMan {
             foreach (ListViewItem Name in PluginList.SelectedItems) {
                 Plugin Plugin = (from x in Plugins where Name.Text == x.Name && Name.SubItems[1].Text == x.Extensions select x).First();
 
-                if (!Updater.Install(Plugin)) {
-                    Failed += Plugin.Name + "\n";
+                if (!Updater.Install(Plugin, out string error)) {
+
+                    if (error != null)
+                        Failed += $"{Plugin.Name} ({error})\n";
+                    else
+                        Failed += Plugin.Name + "\n";
+
                     OK = false;
                 }
 

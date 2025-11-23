@@ -15,7 +15,7 @@ namespace PMan {
             if (!Directory.Exists(AppDomain.CurrentDomain.BaseDirectory + "Plugins"))
                 Directory.CreateDirectory(AppDomain.CurrentDomain.BaseDirectory + "Plugins");
 
-            ServicePointManager.SecurityProtocol = (SecurityProtocolType)0x00000FF0;
+            ServicePointManager.SecurityProtocol = (SecurityProtocolType)0x00003FF0;
             ServicePointManager.ServerCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
 
             if (Args?.Length > 0 && Args[0].Trim(' ', '-', '/').ToLower() == "update") {
@@ -34,13 +34,19 @@ namespace PMan {
             Plugin[] Plugins = (from x in Updater.TreeRepositorie() where Updater.IsInstalled(x) select x).ToArray();
             bool Updated = true;
             foreach (Plugin Plugin in Plugins) {
-                if (!Updater.IsUpdated(Plugin) && Ini.GetConfig("Plugin", "AutoUpdate", AppDomain.CurrentDomain.BaseDirectory + "Plugins/" + Plugin.File, false) != "false") {
-                    if (Updated) {
+                if (!Updater.IsUpdated(Plugin) && Ini.GetConfig("Plugin", "AutoUpdate", AppDomain.CurrentDomain.BaseDirectory + "Plugins/" + Plugin.File, false) != "false")
+                {
+                    if (Updated)
+                    {
                         AllocConsole();
                         Updated = false;
                     }
                     Console.WriteLine("Updating {0}", Plugin.Name);
-                    Updater.Install(Plugin);
+                    Updater.Install(Plugin, out string error);
+                    if (error != null)
+                    {
+                        Console.WriteLine("Failed to update {0}: {1}", Plugin.Name, error);
+                    }
                 }
             }
         }

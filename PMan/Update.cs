@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Windows.Forms;
 
@@ -112,7 +113,7 @@ namespace PMan {
             return Updated;
         }
 
-        internal static bool Install(Plugin Plugin) {
+        internal static bool Install(Plugin Plugin, out string error) {
             try {
                 byte[] PIni = DownloadData(RepoPath + Plugin.File);
 
@@ -127,7 +128,13 @@ namespace PMan {
                 try {
                     ModuleContent = DownloadData(RepoPath + Module + ".cs");
                     Module += ".cs";
-                } catch {
+                } 
+                catch (Exception ex)
+                {
+                    if (ex is WebException wex && wex.Response is HttpWebResponse hres && hres.StatusCode == (HttpStatusCode)429)
+                    {
+                        throw new Exception("Too Many Requests. Please try again later.");
+                    }
                     try {
                         ModuleContent = DownloadData(RepoPath + Module + ".vb");
                         Module += ".vb";
@@ -155,9 +162,10 @@ namespace PMan {
                         File.WriteAllBytes(PluginDir + Dependencie, Data);
                     }
                 }
-
+                error = null;
                 return true;
-            }catch {
+            } catch  (Exception ex) {
+                error = ex.Message;
                 return false;
             }
         }
